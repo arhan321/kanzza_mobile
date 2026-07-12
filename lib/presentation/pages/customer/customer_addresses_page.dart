@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../../core/location/location_service.dart';
+import '../../../core/widgets/location_picker_card.dart';
 import '../../../data/models/address.dart';
 import '../../../data/models/user.dart';
 import '../../../data/repositories/address_repository.dart';
@@ -169,6 +171,8 @@ class _CustomerAddressesPageState
           city: formResult.city,
           district: formResult.district,
           postalCode: formResult.postalCode,
+          latitude: formResult.latitude,
+          longitude: formResult.longitude,
           isDefault: formResult.isDefault,
         );
       } else {
@@ -183,8 +187,8 @@ class _CustomerAddressesPageState
           city: formResult.city,
           district: formResult.district,
           postalCode: formResult.postalCode,
-          latitude: address.latitude,
-          longitude: address.longitude,
+          latitude: formResult.latitude,
+          longitude: formResult.longitude,
           isDefault: formResult.isDefault,
         );
       }
@@ -1239,6 +1243,8 @@ class _AddressFormSheetState
   late final TextEditingController _provinceController;
   late final TextEditingController _postalCodeController;
 
+  double? _latitude;
+  double? _longitude;
   late bool _isDefault;
 
   @override
@@ -1273,6 +1279,8 @@ class _AddressFormSheetState
     _postalCodeController = TextEditingController(
       text: address?.postalCode ?? '',
     );
+    _latitude = address?.latitude;
+    _longitude = address?.longitude;
     _isDefault = address?.isDefault ?? false;
   }
 
@@ -1287,6 +1295,18 @@ class _AddressFormSheetState
     _provinceController.dispose();
     _postalCodeController.dispose();
     super.dispose();
+  }
+
+  void _applyDetectedLocation(DetectedLocation location) {
+    setState(() {
+      _latitude = location.latitude;
+      _longitude = location.longitude;
+      _addressController.text = location.fullAddress;
+      _districtController.text = location.district ?? '';
+      _cityController.text = location.city ?? '';
+      _provinceController.text = location.province ?? '';
+      _postalCodeController.text = location.postalCode ?? '';
+    });
   }
 
   void _submit() {
@@ -1310,6 +1330,8 @@ class _AddressFormSheetState
             _provinceController.text.trim(),
         postalCode:
             _postalCodeController.text.trim(),
+        latitude: _latitude,
+        longitude: _longitude,
         isDefault: _isDefault,
       ),
     );
@@ -1443,6 +1465,13 @@ class _AddressFormSheetState
                               TextInputType.phone,
                           validator:
                               _validatePhone,
+                        ),
+                        const SizedBox(height: 12),
+                        LocationPickerCard(
+                          initialLatitude: _latitude,
+                          initialLongitude: _longitude,
+                          autoDetect: widget.address == null,
+                          onLocationChanged: _applyDetectedLocation,
                         ),
                         const SizedBox(height: 12),
                         _field(
@@ -1695,6 +1724,8 @@ class _AddressFormResult {
   final String city;
   final String province;
   final String postalCode;
+  final double? latitude;
+  final double? longitude;
   final bool isDefault;
 
   const _AddressFormResult({
@@ -1706,6 +1737,8 @@ class _AddressFormResult {
     required this.city,
     required this.province,
     required this.postalCode,
+    this.latitude,
+    this.longitude,
     required this.isDefault,
   });
 }

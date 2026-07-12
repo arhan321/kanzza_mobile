@@ -7,6 +7,9 @@ import 'package:provider/provider.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../../core/widgets/delivery_route_preview.dart';
+import '../../../core/widgets/location_picker_card.dart';
+import '../../../core/location/location_service.dart';
 import '../../../data/models/address.dart';
 import '../../../data/models/cart_item.dart';
 import '../../../data/models/customer_order.dart';
@@ -223,6 +226,8 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
         city: form.city,
         district: form.district,
         postalCode: form.postalCode,
+        latitude: form.latitude,
+        longitude: form.longitude,
         isDefault: form.isDefault,
       );
 
@@ -1266,11 +1271,18 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
           const SizedBox(height: 10),
           if (_addresses.isEmpty)
             _buildEmptyAddress(isDark)
-          else
+          else ...[
             ..._addresses.map(
               (address) =>
                   _buildAddressOption(address: address, isDark: isDark),
             ),
+            if (_selectedAddress?.latitude != null &&
+                _selectedAddress?.longitude != null)
+              DeliveryRoutePreview(
+                customerLatitude: _selectedAddress!.latitude!,
+                customerLongitude: _selectedAddress!.longitude!,
+              ),
+          ],
         ],
       ),
     );
@@ -1403,6 +1415,12 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                             _smallBadge(
                               text: 'Utama',
                               color: Colors.green.shade500,
+                            ),
+                          if (address.latitude != null &&
+                              address.longitude != null)
+                            _smallBadge(
+                              text: 'GPS',
+                              color: const Color(0xFF9B5EFF),
                             ),
                         ],
                       ),
@@ -1930,6 +1948,8 @@ class _AddAddressSheetState extends State<_AddAddressSheet> {
   final TextEditingController _provinceController = TextEditingController();
   final TextEditingController _postalCodeController = TextEditingController();
 
+  double? _latitude;
+  double? _longitude;
   bool _isDefault = false;
 
   @override
@@ -1954,6 +1974,18 @@ class _AddAddressSheetState extends State<_AddAddressSheet> {
     super.dispose();
   }
 
+  void _applyDetectedLocation(DetectedLocation location) {
+    setState(() {
+      _latitude = location.latitude;
+      _longitude = location.longitude;
+      _addressController.text = location.fullAddress;
+      _districtController.text = location.district ?? '';
+      _cityController.text = location.city ?? '';
+      _provinceController.text = location.province ?? '';
+      _postalCodeController.text = location.postalCode ?? '';
+    });
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -1970,6 +2002,8 @@ class _AddAddressSheetState extends State<_AddAddressSheet> {
         city: _cityController.text.trim(),
         province: _provinceController.text.trim(),
         postalCode: _postalCodeController.text.trim(),
+        latitude: _latitude,
+        longitude: _longitude,
         isDefault: _isDefault,
       ),
     );
@@ -2058,6 +2092,13 @@ class _AddAddressSheetState extends State<_AddAddressSheet> {
                           icon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
                           validator: _validatePhone,
+                        ),
+                        const SizedBox(height: 13),
+                        LocationPickerCard(
+                          initialLatitude: _latitude,
+                          initialLongitude: _longitude,
+                          autoDetect: true,
+                          onLocationChanged: _applyDetectedLocation,
                         ),
                         const SizedBox(height: 13),
                         _field(
@@ -2238,6 +2279,8 @@ class _AddressFormResult {
   final String city;
   final String province;
   final String postalCode;
+  final double? latitude;
+  final double? longitude;
   final bool isDefault;
 
   const _AddressFormResult({
@@ -2249,6 +2292,8 @@ class _AddressFormResult {
     required this.city,
     required this.province,
     required this.postalCode,
+    this.latitude,
+    this.longitude,
     required this.isDefault,
   });
 }
