@@ -9,6 +9,28 @@ class CustomerOrderRemoteDataSource {
 
   final ApiClient _apiClient;
 
+  Future<ApiResponse> getOrders({
+    String? orderStatus,
+    String? paymentStatus,
+    String? search,
+    int perPage = 100,
+  }) {
+    return _apiClient.get(
+      ApiEndpoints.orders,
+      queryParameters: {
+        if (orderStatus != null &&
+            orderStatus.trim().isNotEmpty)
+          'order_status': orderStatus.trim(),
+        if (paymentStatus != null &&
+            paymentStatus.trim().isNotEmpty)
+          'payment_status': paymentStatus.trim(),
+        if (search != null && search.trim().isNotEmpty)
+          'search': search.trim(),
+        'per_page': perPage,
+      },
+    );
+  }
+
   Future<ApiResponse> createOrder({
     required String deliveryMethod,
     int? addressId,
@@ -27,6 +49,18 @@ class CustomerOrderRemoteDataSource {
     );
   }
 
+  Future<ApiResponse> getOrderDetail(int orderId) {
+    return _apiClient.get(
+      ApiEndpoints.orderDetail(orderId),
+    );
+  }
+
+  Future<ApiResponse> cancelOrder(int orderId) {
+    return _apiClient.post(
+      ApiEndpoints.cancelOrder(orderId),
+    );
+  }
+
   Future<ApiResponse> createOrReusePayment(int orderId) {
     return _apiClient.post(
       ApiEndpoints.orderPayment(orderId),
@@ -36,12 +70,6 @@ class CustomerOrderRemoteDataSource {
   Future<ApiResponse> checkPaymentStatus(int orderId) {
     return _apiClient.post(
       ApiEndpoints.checkOrderPayment(orderId),
-    );
-  }
-
-  Future<ApiResponse> getOrderDetail(int orderId) {
-    return _apiClient.get(
-      ApiEndpoints.orderDetail(orderId),
     );
   }
 }
