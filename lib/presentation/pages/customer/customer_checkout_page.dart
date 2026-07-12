@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -35,6 +36,10 @@ class CustomerCheckoutPage extends StatefulWidget {
 }
 
 class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
+  static const String _adminWhatsAppNumber = '6289652731947';
+  static const String _adminWhatsAppMessage =
+      'Min, saya mau order tapi ada masalah nih...';
+
   final AddressRepository _addressRepository = AddressRepository();
   final CustomerOrderRepository _orderRepository = CustomerOrderRepository();
   final UserRepository _userRepository = UserRepository();
@@ -63,6 +68,38 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
   void dispose() {
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openWhatsApp() async {
+    final encodedMessage = Uri.encodeComponent(_adminWhatsAppMessage);
+    final whatsappUri = Uri.parse(
+      'https://wa.me/$_adminWhatsAppNumber?text=$encodedMessage',
+    );
+
+    try {
+      final opened = await launchUrl(
+        whatsappUri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened && mounted) {
+        _showSnackBar(
+          'WhatsApp tidak dapat dibuka pada perangkat ini.',
+          Colors.orange.shade500,
+        );
+      }
+    } catch (error) {
+      debugPrint('OPEN WHATSAPP ERROR: $error');
+
+      if (!mounted) {
+        return;
+      }
+
+      _showSnackBar(
+        'WhatsApp tidak dapat dibuka. Silakan coba kembali.',
+        Colors.orange.shade500,
+      );
+    }
   }
 
   int get _cartSubtotal {
@@ -963,11 +1000,6 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                   isDark: isDark,
                 ),
               ),
-              if (!_isLoading && _errorMessage == null)
-                _buildBottomButton(
-                  horizontalPadding: horizontalPadding,
-                  isDark: isDark,
-                ),
             ],
           ),
         ),
@@ -987,87 +1019,101 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
         left: horizontalPadding,
         right: horizontalPadding,
         top: MediaQuery.of(context).padding.top + 14,
-        bottom: 14,
+        bottom: 16,
       ),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF13102A) : Colors.white,
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-        border: isDark
-            ? const Border(bottom: BorderSide(color: Color(0xFF1E1E35)))
-            : null,
-      ),
+      color: Colors.transparent,
       child: Row(
         children: [
-          IconButton(
-            onPressed: _isSubmitting
-                ? null
-                : () {
-                    Navigator.maybePop(context);
-                  },
-            style: IconButton.styleFrom(
-              backgroundColor: isDark
-                  ? const Color(0xFF16162A)
-                  : const Color(0xFFF5F5FA),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isSubmitting
+                  ? null
+                  : () {
+                      Navigator.maybePop(context);
+                    },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: isTablet ? 58 : 52,
+                height: isTablet ? 58 : 52,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF16162A)
+                      : const Color(0xFFF9F9FC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF28243F)
+                        : const Color(0xFFE4E4EC),
+                  ),
+                ),
+                child: Icon(
+                  Icons.arrow_back_rounded,
+                  color: theme.textTheme.titleLarge?.color,
+                  size: isTablet ? 29 : 26,
+                ),
               ),
             ),
-            icon: Icon(
-              Icons.arrow_back_rounded,
-              color: theme.textTheme.titleLarge?.color,
-            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Checkout',
-                  style: GoogleFonts.poppins(
-                    color: theme.textTheme.titleLarge?.color,
-                    fontSize: isTablet ? 24 : 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '$_totalQuantity item • Midtrans',
-                  style: GoogleFonts.inter(
-                    color: theme.textTheme.bodySmall?.color,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: 'Muat ulang alamat',
-            onPressed: _isRefreshing || _isSubmitting ? null : _refresh,
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF9B5EFF).withOpacity(0.12),
-              foregroundColor: const Color(0xFF9B5EFF),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            child: Text(
+              'Checkout',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(
+                color: theme.textTheme.titleLarge?.color,
+                fontSize: isTablet ? 30 : 25,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
               ),
             ),
-            icon: _isRefreshing
-                ? const SizedBox(
-                    width: 19,
-                    height: 19,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFF9B5EFF),
+          ),
+          const SizedBox(width: 6),
+          TextButton(
+            onPressed: _openWhatsApp,
+            style: TextButton.styleFrom(
+              foregroundColor: theme.textTheme.bodyMedium?.color,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'Hubungi Admin',
+              style: GoogleFonts.inter(
+                color: theme.textTheme.bodyMedium?.color,
+                fontSize: isTablet ? 13 : 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _openWhatsApp,
+              borderRadius: BorderRadius.circular(15),
+              child: Container(
+                width: isTablet ? 56 : 50,
+                height: isTablet ? 56 : 50,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CD466),
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4CD466).withOpacity(0.32),
+                      blurRadius: 16,
+                      offset: const Offset(0, 7),
                     ),
-                  )
-                : const Icon(Icons.refresh_rounded),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.chat_rounded,
+                  color: Colors.white,
+                  size: 25,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -1113,37 +1159,38 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
           _buildNotesCard(isDark),
           const SizedBox(height: 16),
           _buildOrderSummaryCard(isDark),
+          const SizedBox(height: 18),
+          _buildCheckoutButton(isDark),
+          const SizedBox(height: 18),
+          _buildAdminContactCard(isDark),
+          const SizedBox(height: 10),
         ],
       ),
     );
   }
 
   Widget _buildDeliveryMethodCard(bool isDark) {
-    final theme = Theme.of(context);
-
     return _sectionCard(
       isDark: isDark,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(
-            icon: Icons.local_shipping_outlined,
-            title: 'Metode Pengiriman',
-          ),
-          const SizedBox(height: 12),
           _deliveryOption(
             value: 'delivery',
-            title: 'Diantar ke Alamat',
-            subtitle: 'Pesanan dikirim oleh driver Kanzza',
+            title: 'Di Antar ke Alamat',
+            subtitle: 'Pesanan akan diantar ke lokasi Anda',
             icon: Icons.delivery_dining_rounded,
             isDark: isDark,
           ),
-          const SizedBox(height: 9),
+          Divider(
+            height: 20,
+            color: isDark ? const Color(0xFF28243F) : const Color(0xFFE6E6ED),
+          ),
           _deliveryOption(
             value: 'pickup',
             title: 'Ambil di Toko',
-            subtitle: 'Ambil pesanan langsung di toko',
-            icon: Icons.storefront_outlined,
+            subtitle: 'Ambil pesanan langsung di toko kami',
+            icon: Icons.storefront_rounded,
             isDark: isDark,
           ),
         ],
@@ -1171,25 +1218,9 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                   _deliveryMethod = value;
                 });
               },
-        borderRadius: BorderRadius.circular(13),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: selected
-                ? const Color(0xFF9B5EFF).withOpacity(0.10)
-                : isDark
-                ? const Color(0xFF0D0D12)
-                : const Color(0xFFF7F7FB),
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(
-              color: selected
-                  ? const Color(0xFF9B5EFF)
-                  : isDark
-                  ? const Color(0xFF1E1E35)
-                  : const Color(0xFFE5E7EB),
-              width: selected ? 1.5 : 1,
-            ),
-          ),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Row(
             children: [
               Radio<String>(
@@ -1206,18 +1237,20 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                           _deliveryMethod = nextValue;
                         });
                       },
-                activeColor: const Color(0xFF9B5EFF),
+                activeColor: const Color(0xFF9255F5),
               ),
               Container(
-                width: 42,
-                height: 42,
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF9B5EFF).withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(11),
+                  color: isDark
+                      ? const Color(0xFF242039)
+                      : const Color(0xFFF3F3F7),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(icon, color: const Color(0xFF9B5EFF), size: 22),
+                child: Icon(icon, color: const Color(0xFF9255F5), size: 27),
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: 15),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1226,20 +1259,22 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                       title,
                       style: GoogleFonts.poppins(
                         color: theme.textTheme.titleLarge?.color,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
+                    const SizedBox(height: 1),
                     Text(
                       subtitle,
                       style: GoogleFonts.inter(
                         color: theme.textTheme.bodySmall?.color,
-                        fontSize: 10,
+                        fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
+              if (selected) const SizedBox(width: 2),
             ],
           ),
         ),
@@ -1525,64 +1560,84 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
 
     return _sectionCard(
       isDark: isDark,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(
-            icon: Icons.payment_rounded,
-            title: 'Metode Pembayaran',
+          _paymentOption(
+            title: 'Pembayaran Online (Midtrans)',
+            subtitle: 'Transfer bank, QRIS, e-wallet, dan metode lainnya',
+            icon: Icons.account_balance_wallet_rounded,
+            selected: true,
+            enabled: true,
+            isDark: isDark,
           ),
-          const SizedBox(height: 12),
+          Divider(
+            height: 20,
+            color: isDark ? const Color(0xFF28243F) : const Color(0xFFE6E6ED),
+          ),
+          _paymentOption(
+            title: 'Bayar di Tempat (COD)',
+            subtitle: 'Belum tersedia pada sistem saat ini',
+            icon: Icons.payments_outlined,
+            selected: false,
+            enabled: false,
+            isDark: isDark,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _paymentOption({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool selected,
+    required bool enabled,
+    required bool isDark,
+  }) {
+    final theme = Theme.of(context);
+    final opacity = enabled ? 1.0 : 0.48;
+
+    return Opacity(
+      opacity: opacity,
+      child: Row(
+        children: [
+          Radio<bool>(
+            value: true,
+            groupValue: selected,
+            onChanged: enabled ? (_) {} : null,
+            activeColor: const Color(0xFF9255F5),
+          ),
           Container(
-            padding: const EdgeInsets.all(13),
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
-              color: const Color(0xFF9B5EFF).withOpacity(0.09),
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(
-                color: const Color(0xFF9B5EFF).withOpacity(0.25),
-              ),
+              color: isDark ? const Color(0xFF242039) : const Color(0xFFF3F3F7),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(
+            child: Icon(icon, color: const Color(0xFF9255F5), size: 27),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 43,
-                  height: 43,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF9B5EFF),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: const Icon(
-                    Icons.credit_card_rounded,
-                    color: Colors.white,
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    color: theme.textTheme.titleLarge?.color,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Midtrans',
-                        style: GoogleFonts.poppins(
-                          color: theme.textTheme.titleLarge?.color,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        'Pilih metode pembayaran pada '
-                        'halaman Midtrans Snap.',
-                        style: GoogleFonts.inter(
-                          color: theme.textTheme.bodySmall?.color,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 1),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.inter(
+                    color: theme.textTheme.bodySmall?.color,
+                    fontSize: 11,
                   ),
-                ),
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: Color(0xFF9B5EFF),
                 ),
               ],
             ),
@@ -1641,67 +1696,71 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
 
   Widget _buildOrderSummaryCard(bool isDark) {
     final theme = Theme.of(context);
+    final isPickup = _deliveryMethod == 'pickup';
 
     return _sectionCard(
       isDark: isDark,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(
-            icon: Icons.receipt_long_outlined,
-            title: 'Ringkasan Pesanan',
+          _summaryRow(
+            label: 'Total Belanja',
+            value: 'Rp ${_formatPrice(_cartSubtotal)}',
+            valueFontSize: 15,
+          ),
+          const SizedBox(height: 2),
+          _summaryRow(
+            label: 'Ongkos Kirim',
+            value: isPickup ? 'Rp 0' : 'Dihitung server',
+            valueFontSize: isPickup ? 15 : 12,
+          ),
+          Divider(
+            height: 26,
+            thickness: 1.2,
+            color: isDark ? const Color(0xFF6D6882) : const Color(0xFF4B4B55),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Total Pembayaran',
+                  style: GoogleFonts.poppins(
+                    color: theme.textTheme.titleLarge?.color,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                isPickup
+                    ? 'Rp ${_formatPrice(_cartSubtotal)}'
+                    : 'Setelah order dibuat',
+                textAlign: TextAlign.right,
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF9255F5),
+                  fontSize: isPickup ? 20 : 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          ...widget.cartItems.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${item.quantity} × ${item.name}',
-                      style: GoogleFonts.inter(
-                        color: theme.textTheme.bodyMedium?.color,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Rp ${_formatPrice(item.subtotal)}',
-                    style: GoogleFonts.inter(
-                      color: theme.textTheme.titleLarge?.color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const Divider(height: 22),
-          _summaryRow(
-            label: 'Subtotal estimasi',
-            value: 'Rp ${_formatPrice(_cartSubtotal)}',
-          ),
-          _summaryRow(
-            label: 'Ongkos kirim',
-            value: _deliveryMethod == 'pickup' ? 'Rp 0' : 'Dihitung server',
-          ),
-          const SizedBox(height: 7),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(11),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.09),
-              borderRadius: BorderRadius.circular(11),
+              color: const Color(0xFF9255F5).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF9255F5).withOpacity(0.18),
+              ),
             ),
             child: Text(
-              'Harga, stok, ongkos kirim, dan total '
-              'akhir akan divalidasi ulang oleh Laravel.',
+              isPickup
+                  ? 'Harga dan stok tetap divalidasi ulang oleh server.'
+                  : 'Ongkos kirim dan total final ditentukan Laravel setelah pesanan dibuat.',
               style: GoogleFonts.inter(
-                color: Colors.orange.shade700,
+                color: const Color(0xFF7C3AED),
                 fontSize: 10,
                 height: 1.4,
               ),
@@ -1712,7 +1771,11 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     );
   }
 
-  Widget _summaryRow({required String label, required String value}) {
+  Widget _summaryRow({
+    required String label,
+    required String value,
+    double valueFontSize = 13,
+  }) {
     final theme = Theme.of(context);
 
     return Padding(
@@ -1723,16 +1786,17 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             child: Text(
               label,
               style: GoogleFonts.inter(
-                color: theme.textTheme.bodySmall?.color,
-                fontSize: 12,
+                color: theme.textTheme.bodyMedium?.color,
+                fontSize: 14,
               ),
             ),
           ),
           Text(
             value,
+            textAlign: TextAlign.right,
             style: GoogleFonts.poppins(
               color: theme.textTheme.titleLarge?.color,
-              fontSize: 13,
+              fontSize: valueFontSize,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1741,85 +1805,139 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     );
   }
 
-  Widget _buildBottomButton({
-    required double horizontalPadding,
-    required bool isDark,
-  }) {
+  Widget _buildCheckoutButton(bool isDark) {
     final disabled =
         _deliveryMethod == 'delivery' && _selectedAddressId == null;
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(
-          horizontalPadding,
-          13,
-          horizontalPadding,
-          13,
-        ),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF16162A) : Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-            ),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: disabled || _isSubmitting ? null : _confirmAndCreateOrder,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF9255F5),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: isDark
+              ? const Color(0xFF5C5878)
+              : const Color(0xFFD1D5DB),
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(17),
           ),
-          boxShadow: isDark
-              ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, -3),
-                  ),
-                ],
-        ),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: disabled || _isSubmitting
-                ? null
-                : _confirmAndCreateOrder,
-            icon: _isSubmitting
-                ? const SizedBox(
-                    width: 19,
-                    height: 19,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Icon(Icons.lock_outline_rounded),
-            label: Text(
-              _isSubmitting ? 'Memproses Pesanan...' : 'Buat Pesanan & Bayar',
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF9B5EFF),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: isDark
-                  ? const Color(0xFF5C5878)
-                  : const Color(0xFFD1D5DB),
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
-            ),
+          textStyle: GoogleFonts.poppins(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
           ),
         ),
+        child: _isSubmitting
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.3,
+                ),
+              )
+            : const Text('Lanjutkan ke Pembayaran'),
       ),
     );
   }
 
-  Widget _sectionCard({required bool isDark, required Widget child}) {
+  Widget _buildAdminContactCard(bool isDark) {
     final theme = Theme.of(context);
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF4CD466).withOpacity(0.35)),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: const Color(0xFF4CD466).withOpacity(0.14),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: const Icon(
+              Icons.chat_rounded,
+              color: Color(0xFF35B954),
+              size: 29,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hubungi Admin',
+                  style: GoogleFonts.poppins(
+                    color: theme.textTheme.titleLarge?.color,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Ada kendala? Klik tombol di samping untuk chat admin.',
+                  style: GoogleFonts.inter(
+                    color: theme.textTheme.bodySmall?.color,
+                    fontSize: 11,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          ElevatedButton.icon(
+            onPressed: _openWhatsApp,
+            icon: const Icon(Icons.chat_rounded, size: 18),
+            label: const Text('Chat'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CD466),
+              foregroundColor: Colors.white,
+              elevation: 5,
+              shadowColor: const Color(0xFF4CD466).withOpacity(0.35),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(13),
+              ),
+              textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard({
+    required bool isDark,
+    required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(15),
+  }) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
         ),
