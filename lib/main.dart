@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'core/theme/theme_provider.dart';
 import 'presentation/pages/auth/splash_page.dart';
+import 'presentation/providers/customer_cart_provider.dart';
 import 'routes.dart';
 
 void main() {
@@ -15,8 +16,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(
+          create: (_) => CustomerCartProvider()..initialize(),
+        ),
+      ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(

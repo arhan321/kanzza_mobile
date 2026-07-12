@@ -7,7 +7,7 @@ import 'package:kanzza_sales_app_fe/presentation/pages/cashier/cashier_dashboard
 import 'package:kanzza_sales_app_fe/presentation/pages/cashier/cashier_products_page.dart';
 import 'package:kanzza_sales_app_fe/presentation/pages/cashier/offline_transaction_page.dart';
 import 'package:kanzza_sales_app_fe/presentation/pages/cashier/transaction_history_page.dart';
-import 'package:kanzza_sales_app_fe/presentation/pages/cashier/manage_products_page.dart'; // TAMBAHKAN
+// import 'package:kanzza_sales_app_fe/presentation/pages/cashier/manage_products_page.dart'; // TAMBAHKAN
 import 'package:kanzza_sales_app_fe/presentation/pages/customer/customer_home_page.dart';
 import 'package:kanzza_sales_app_fe/presentation/pages/driver/driver_dashboard_page.dart';
 import 'package:kanzza_sales_app_fe/presentation/pages/owner/owner_dashboard_page.dart';
@@ -35,7 +35,7 @@ class AppRoutes {
 
       offlineTransaction: (context) => const OfflineTransactionPage(),
       transactionHistory: (context) => const TransactionHistoryPage(),
-      manageProducts: (context) => const ManageProductsPage(), // TAMBAHKAN
+      // manageProducts: (context) => const ManageProductsPage(), // TAMBAHKAN
       driverDashboard: (context) => const DriverDashboardPage(),
       ownerDashboard: (context) => const OwnerDashboardPage(),
     };
