@@ -13,11 +13,13 @@ import '../location/store_location.dart';
 class DeliveryRoutePreview extends StatefulWidget {
   final double customerLatitude;
   final double customerLongitude;
+  final ValueChanged<double>? onDistanceChanged;
 
   const DeliveryRoutePreview({
     super.key,
     required this.customerLatitude,
     required this.customerLongitude,
+    this.onDistanceChanged,
   });
 
   @override
@@ -65,31 +67,29 @@ class _DeliveryRoutePreviewState extends State<DeliveryRoutePreview> {
         '?overview=full&geometries=geojson&steps=false&alternatives=false',
       );
 
-      final response = await http.get(
-        uri,
-        headers: const {
-          'Accept': 'application/json',
-          'User-Agent': 'KanzzaSalesApp/1.0',
-        },
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            uri,
+            headers: const {
+              'Accept': 'application/json',
+              'User-Agent': 'KanzzaSalesApp/1.0',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
       }
 
       final decoded = jsonDecode(response.body);
-      final routes = decoded is Map<String, dynamic>
-          ? decoded['routes']
-          : null;
+      final routes = decoded is Map<String, dynamic> ? decoded['routes'] : null;
 
       if (routes is! List || routes.isEmpty) {
         throw Exception('Rute tidak tersedia');
       }
 
       final route = routes.first;
-      final geometry = route is Map<String, dynamic>
-          ? route['geometry']
-          : null;
+      final geometry = route is Map<String, dynamic> ? route['geometry'] : null;
       final coordinates = geometry is Map<String, dynamic>
           ? geometry['coordinates']
           : null;
@@ -115,25 +115,33 @@ class _DeliveryRoutePreviewState extends State<DeliveryRoutePreview> {
         return;
       }
 
+      final distanceKm = distanceMeters is num
+          ? distanceMeters.toDouble() / 1000
+          : _straightDistance();
+
       setState(() {
         _routePoints = points;
-        _distanceKm = distanceMeters is num
-            ? distanceMeters.toDouble() / 1000
-            : _straightDistance();
+        _distanceKm = distanceKm;
         _usesRoadRoute = true;
         _isLoading = false;
       });
+
+      widget.onDistanceChanged?.call(distanceKm);
     } catch (_) {
       if (!mounted) {
         return;
       }
 
+      final distanceKm = _straightDistance();
+
       setState(() {
         _routePoints = [_storePoint, _customerPoint];
-        _distanceKm = _straightDistance();
+        _distanceKm = distanceKm;
         _usesRoadRoute = false;
         _isLoading = false;
       });
+
+      widget.onDistanceChanged?.call(distanceKm);
     }
   }
 
@@ -287,7 +295,7 @@ class _DeliveryRoutePreviewState extends State<DeliveryRoutePreview> {
                   _isLoading
                       ? 'Sedang mencari rute dari toko...'
                       : '${_usesRoadRoute ? 'Jarak rute' : 'Estimasi garis lurus'}: '
-                          '${(_distanceKm ?? 0).toStringAsFixed(2)} km',
+                            '${(_distanceKm ?? 0).toStringAsFixed(2)} km',
                   style: GoogleFonts.inter(
                     color: theme.textTheme.titleLarge?.color,
                     fontSize: 10,
@@ -303,8 +311,7 @@ class _DeliveryRoutePreviewState extends State<DeliveryRoutePreview> {
             ],
           ),
           Text(
-            'Jarak hanya informasi visual. Ongkos kirim dan total final tetap '
-            'ditentukan backend.',
+            'Ongkos kirim dihitung Rp5.000 per kilometer dari toko Kanzza.',
             style: GoogleFonts.inter(
               color: theme.textTheme.bodySmall?.color,
               fontSize: 9,

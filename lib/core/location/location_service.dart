@@ -47,6 +47,14 @@ class LocationService {
   const LocationService();
 
   Future<DetectedLocation> detectCurrentLocation() async {
+    return _detectCurrentLocation(allowLastKnownPosition: true);
+  }
+
+  Future<DetectedLocation> _detectCurrentLocation({
+    required bool allowLastKnownPosition,
+    LocationAccuracy accuracy = LocationAccuracy.high,
+    Duration timeout = const Duration(seconds: 20),
+  }) async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
     if (!serviceEnabled) {
@@ -80,12 +88,19 @@ class LocationService {
 
     try {
       position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
+        locationSettings: LocationSettings(
+          accuracy: accuracy,
           distanceFilter: 0,
         ),
-      ).timeout(const Duration(seconds: 20));
+      ).timeout(timeout);
     } on TimeoutException {
+      if (!allowLastKnownPosition) {
+        throw const LocationFailure(
+          LocationFailureType.timeout,
+          'GPS terbaru belum ditemukan. Coba lagi di area terbuka.',
+        );
+      }
+
       position = await Geolocator.getLastKnownPosition();
 
       if (position == null) {
@@ -97,6 +112,13 @@ class LocationService {
     } catch (error) {
       if (error is LocationFailure) {
         rethrow;
+      }
+
+      if (!allowLastKnownPosition) {
+        throw LocationFailure(
+          LocationFailureType.unavailable,
+          'Lokasi GPS terbaru gagal dideteksi: $error',
+        );
       }
 
       position = await Geolocator.getLastKnownPosition();

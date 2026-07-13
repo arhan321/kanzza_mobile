@@ -44,12 +44,18 @@ class CustomerOrderRepository {
 
   Future<CustomerOrderModel> createOrder({
     required String deliveryMethod,
+    required String paymentMethod,
+    double? distanceKm,
+    int? shippingCost,
     int? addressId,
     required List<Map<String, int>> items,
     String? notes,
   }) async {
     final response = await _remoteDataSource.createOrder(
       deliveryMethod: deliveryMethod,
+      paymentMethod: paymentMethod,
+      distanceKm: distanceKm,
+      shippingCost: shippingCost,
       addressId: addressId,
       items: items,
       notes: notes,

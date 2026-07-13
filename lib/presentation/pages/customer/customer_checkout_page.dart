@@ -11,6 +11,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/widgets/delivery_route_preview.dart';
 import '../../../core/widgets/location_picker_card.dart';
 import '../../../core/location/location_service.dart';
+import '../../../core/location/store_location.dart';
 import '../../../data/models/address.dart';
 import '../../../data/models/cart_item.dart';
 import '../../../data/models/customer_order.dart';
@@ -36,6 +37,7 @@ class CustomerCheckoutPage extends StatefulWidget {
 }
 
 class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
+  static const int _shippingRatePerKm = 5000;
   static const String _adminWhatsAppNumber = '6289652731947';
   static const String _adminWhatsAppMessage =
       'Min, saya mau order tapi ada masalah nih...';
@@ -51,6 +53,12 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
   UserModel? _currentUser;
   int? _selectedAddressId;
   String _deliveryMethod = 'delivery';
+  String _paymentMethod = 'cash';
+  bool _showDeliveryRoute = false;
+  int _routeCheckRevision = 0;
+  bool _isCheckingLocation = false;
+  double? _checkedLocationAccuracy;
+  double? _routeDistanceKm;
 
   bool _isLoading = true;
   bool _isRefreshing = false;
@@ -116,6 +124,36 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     );
   }
 
+  int get _shippingCost {
+    if (_deliveryMethod == 'pickup') {
+      return 0;
+    }
+
+    final distanceKm = _effectiveDistanceKm;
+    return distanceKm == null ? 0 : (distanceKm * _shippingRatePerKm).round();
+  }
+
+  int get _checkoutTotal => _cartSubtotal + _shippingCost;
+
+  double? get _effectiveDistanceKm =>
+      _routeDistanceKm ?? _savedDistanceEstimate(_selectedAddress);
+
+  double? _savedDistanceEstimate(AddressModel? address) {
+    final latitude = address?.latitude;
+    final longitude = address?.longitude;
+
+    if (latitude == null || longitude == null) {
+      return null;
+    }
+
+    return LocationService.distanceInKilometers(
+      startLatitude: StoreLocation.latitude,
+      startLongitude: StoreLocation.longitude,
+      endLatitude: latitude,
+      endLongitude: longitude,
+    );
+  }
+
   AddressModel? get _selectedAddress {
     if (_selectedAddressId == null) {
       return null;
@@ -172,12 +210,25 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
         }
       }
 
+      AddressModel? nextSelectedAddress;
+      if (nextAddressId != null) {
+        for (final address in addresses) {
+          if (address.id == nextAddressId) {
+            nextSelectedAddress = address;
+            break;
+          }
+        }
+      }
+
       setState(() {
         _currentUser = user;
         _addresses
           ..clear()
           ..addAll(addresses);
         _selectedAddressId = nextAddressId;
+        _showDeliveryRoute = false;
+        _checkedLocationAccuracy = null;
+        _routeDistanceKm = _savedDistanceEstimate(nextSelectedAddress);
         _isLoading = false;
         _isRefreshing = false;
         _errorMessage = null;
@@ -226,6 +277,90 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     }
 
     await _loadCheckoutData(isRefresh: true);
+  }
+
+  Future<void> _checkCurrentDeviceLocation() async {
+    final address = _selectedAddress;
+
+    if (address == null || _isCheckingLocation || _isSubmitting) {
+      return;
+    }
+
+    setState(() {
+      _isCheckingLocation = true;
+      _showDeliveryRoute = false;
+      _checkedLocationAccuracy = null;
+      _routeDistanceKm = null;
+    });
+
+    try {
+      final detectedLocation = await const LocationService()
+          .detectCurrentLocation();
+
+      final updatedAddress = await _addressRepository.updateAddress(
+        addressId: address.id,
+        label: address.label,
+        recipientName: address.recipientName,
+        phone: address.phone,
+        fullAddress: detectedLocation.fullAddress,
+        province: detectedLocation.province ?? address.province,
+        city: detectedLocation.city ?? address.city,
+        district: detectedLocation.district ?? address.district,
+        postalCode: detectedLocation.postalCode ?? address.postalCode,
+        latitude: detectedLocation.latitude,
+        longitude: detectedLocation.longitude,
+        isDefault: address.isDefault,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      final index = _addresses.indexWhere((item) => item.id == address.id);
+
+      setState(() {
+        if (index >= 0) {
+          _addresses[index] = updatedAddress;
+        }
+        _checkedLocationAccuracy = detectedLocation.accuracy;
+        _showDeliveryRoute = true;
+        _routeCheckRevision++;
+      });
+
+      _showSnackBar(
+        'Lokasi GPS terbaru berhasil diambil dengan akurasi '
+        '±${detectedLocation.accuracy.round()} meter.',
+        Colors.green.shade600,
+      );
+    } on LocationFailure catch (error) {
+      if (mounted) {
+        _showSnackBar(error.message, Colors.orange.shade600);
+      }
+    } on ApiException catch (error) {
+      if (error.isUnauthorized) {
+        await _handleUnauthorized();
+        return;
+      }
+
+      if (mounted) {
+        _showSnackBar(error.firstValidationError, Colors.red.shade400);
+      }
+    } catch (error) {
+      debugPrint('CHECK CURRENT DEVICE LOCATION ERROR: $error');
+
+      if (mounted) {
+        _showSnackBar(
+          'Lokasi terbaru gagal diperiksa. Silakan coba kembali.',
+          Colors.red.shade400,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingLocation = false;
+        });
+      }
+    }
   }
 
   Future<void> _showAddAddressSheet() async {
@@ -391,6 +526,14 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                   value: 'Rp ${_formatPrice(_cartSubtotal)}',
                 ),
                 _buildConfirmationRow(
+                  label: 'Ongkos kirim',
+                  value: 'Rp ${_formatPrice(_shippingCost)}',
+                ),
+                _buildConfirmationRow(
+                  label: 'Total pembayaran',
+                  value: 'Rp ${_formatPrice(_checkoutTotal)}',
+                ),
+                _buildConfirmationRow(
                   label: 'Pengiriman',
                   value: _deliveryMethod == 'delivery'
                       ? 'Diantar ke alamat'
@@ -401,7 +544,12 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                     label: 'Alamat',
                     value: _selectedAddress?.label ?? '-',
                   ),
-                _buildConfirmationRow(label: 'Pembayaran', value: 'Midtrans'),
+                _buildConfirmationRow(
+                  label: 'Pembayaran',
+                  value: _paymentMethod == 'cash'
+                      ? 'Bayar di Tempat (COD)'
+                      : 'Pembayaran Online (Midtrans)',
+                ),
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
@@ -411,8 +559,9 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: Text(
-                    'Total final dan ongkos kirim dihitung '
-                    'oleh server setelah pesanan dibuat.',
+                    _deliveryMethod == 'pickup'
+                        ? 'Tidak ada ongkos kirim untuk pengambilan di toko.'
+                        : 'Ongkos kirim dihitung dari jarak rute toko dengan tarif Rp5.000/km.',
                     style: GoogleFonts.inter(
                       color: const Color(0xFF7132F5),
                       fontSize: 11,
@@ -499,6 +648,9 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     try {
       createdOrder = await _orderRepository.createOrder(
         deliveryMethod: _deliveryMethod,
+        paymentMethod: _paymentMethod,
+        distanceKm: _deliveryMethod == 'delivery' ? _effectiveDistanceKm : null,
+        shippingCost: _shippingCost,
         addressId: _deliveryMethod == 'delivery' ? _selectedAddressId : null,
         items: widget.cartItems
             .map(
@@ -514,6 +666,43 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
       _orderHasBeenCreated = true;
 
       if (!mounted) {
+        return;
+      }
+
+      if (_deliveryMethod == 'delivery' &&
+          createdOrder.shippingCost != _shippingCost) {
+        await _orderRepository.cancelOrder(createdOrder.id);
+
+        if (!mounted) {
+          return;
+        }
+
+        _orderHasBeenCreated = false;
+        _showSnackBar(
+          'Perhitungan ongkos kirim backend belum sesuai Rp5.000/km. '
+          'Pesanan dibatalkan otomatis agar total pembayaran tidak salah.',
+          Colors.orange.shade600,
+        );
+        return;
+      }
+
+      if (_paymentMethod == 'cash') {
+        if (createdOrder.paymentMethod?.toLowerCase() != 'cash') {
+          await _orderRepository.cancelOrder(createdOrder.id);
+
+          if (!mounted) {
+            return;
+          }
+
+          _orderHasBeenCreated = false;
+          _showSnackBar(
+            'COD belum diaktifkan oleh backend. Pesanan dibatalkan otomatis agar stok tidak tertahan.',
+            Colors.orange.shade600,
+          );
+          return;
+        }
+
+        await _showCodOrderCreated(createdOrder);
         return;
       }
 
@@ -907,6 +1096,39 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     Navigator.pop(context, true);
   }
 
+  Future<void> _showCodOrderCreated(CustomerOrderModel order) async {
+    final theme = Theme.of(context);
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Pesanan COD Berhasil',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          '${order.orderNumber}\n\nSiapkan pembayaran tunai sebesar '
+          'Rp ${_formatPrice(order.grandTotal)} saat pesanan tiba.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(height: 1.5),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Lihat Pesanan'),
+          ),
+        ],
+      ),
+    );
+
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
   void _showSnackBar(String message, Color color) {
     if (!mounted) {
       return;
@@ -1216,6 +1438,11 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             : () {
                 setState(() {
                   _deliveryMethod = value;
+                  _showDeliveryRoute = false;
+                  _checkedLocationAccuracy = null;
+                  _routeDistanceKm = value == 'delivery'
+                      ? _savedDistanceEstimate(_selectedAddress)
+                      : 0;
                 });
               },
         borderRadius: BorderRadius.circular(14),
@@ -1235,6 +1462,11 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
 
                         setState(() {
                           _deliveryMethod = nextValue;
+                          _showDeliveryRoute = false;
+                          _checkedLocationAccuracy = null;
+                          _routeDistanceKm = nextValue == 'delivery'
+                              ? _savedDistanceEstimate(_selectedAddress)
+                              : 0;
                         });
                       },
                 activeColor: const Color(0xFF9255F5),
@@ -1311,11 +1543,68 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
               (address) =>
                   _buildAddressOption(address: address, isDark: isDark),
             ),
-            if (_selectedAddress?.latitude != null &&
+            if (_selectedAddress != null) ...[
+              const SizedBox(height: 7),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isSubmitting || _isCheckingLocation
+                      ? null
+                      : _checkCurrentDeviceLocation,
+                  icon: _isCheckingLocation
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.gps_fixed_rounded),
+                  label: Text(
+                    _isCheckingLocation
+                        ? 'Mengambil GPS Akurat...'
+                        : _showDeliveryRoute
+                        ? 'Cek Ulang Lokasi & Rute'
+                        : 'Cek Lokasi & Tampilkan Rute',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF9255F5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              if (_checkedLocationAccuracy != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Lokasi diambil langsung dari GPS perangkat • '
+                  'akurasi ±${_checkedLocationAccuracy!.round()} meter',
+                  style: GoogleFonts.inter(
+                    color: Colors.green.shade600,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
+            if (_showDeliveryRoute &&
+                _selectedAddress?.latitude != null &&
                 _selectedAddress?.longitude != null)
               DeliveryRoutePreview(
+                key: ValueKey(_routeCheckRevision),
                 customerLatitude: _selectedAddress!.latitude!,
                 customerLongitude: _selectedAddress!.longitude!,
+                onDistanceChanged: (distanceKm) {
+                  if (mounted) {
+                    setState(() {
+                      _routeDistanceKm = distanceKm;
+                    });
+                  }
+                },
               ),
           ],
         ],
@@ -1393,6 +1682,9 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
               : () {
                   setState(() {
                     _selectedAddressId = address.id;
+                    _showDeliveryRoute = false;
+                    _checkedLocationAccuracy = null;
+                    _routeDistanceKm = _savedDistanceEstimate(address);
                   });
                 },
           borderRadius: BorderRadius.circular(13),
@@ -1425,6 +1717,11 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                       : (value) {
                           setState(() {
                             _selectedAddressId = value;
+                            _showDeliveryRoute = false;
+                            _checkedLocationAccuracy = null;
+                            _routeDistanceKm = _savedDistanceEstimate(
+                              value == address.id ? address : null,
+                            );
                           });
                         },
                   activeColor: const Color(0xFF9B5EFF),
@@ -1556,19 +1853,16 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
   }
 
   Widget _buildPaymentCard(bool isDark) {
-    final theme = Theme.of(context);
-
     return _sectionCard(
       isDark: isDark,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       child: Column(
         children: [
           _paymentOption(
-            title: 'Pembayaran Online (Midtrans)',
-            subtitle: 'Transfer bank, QRIS, e-wallet, dan metode lainnya',
-            icon: Icons.account_balance_wallet_rounded,
-            selected: true,
-            enabled: true,
+            value: 'cash',
+            title: 'Bayar di Tempat (COD)',
+            subtitle: 'Bayar tunai saat pesanan sampai',
+            icon: Icons.payments_outlined,
             isDark: isDark,
           ),
           Divider(
@@ -1576,11 +1870,10 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             color: isDark ? const Color(0xFF28243F) : const Color(0xFFE6E6ED),
           ),
           _paymentOption(
-            title: 'Bayar di Tempat (COD)',
-            subtitle: 'Belum tersedia pada sistem saat ini',
-            icon: Icons.payments_outlined,
-            selected: false,
-            enabled: false,
+            value: 'midtrans',
+            title: 'Pembayaran Online (Midtrans)',
+            subtitle: 'Transfer bank, QRIS, e-wallet, dan metode lainnya',
+            icon: Icons.account_balance_wallet_rounded,
             isDark: isDark,
           ),
         ],
@@ -1589,24 +1882,30 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
   }
 
   Widget _paymentOption({
+    required String value,
     required String title,
     required String subtitle,
     required IconData icon,
-    required bool selected,
-    required bool enabled,
     required bool isDark,
   }) {
     final theme = Theme.of(context);
-    final opacity = enabled ? 1.0 : 0.48;
-
-    return Opacity(
-      opacity: opacity,
+    return InkWell(
+      onTap: _isSubmitting
+          ? null
+          : () => setState(() => _paymentMethod = value),
+      borderRadius: BorderRadius.circular(14),
       child: Row(
         children: [
-          Radio<bool>(
-            value: true,
-            groupValue: selected,
-            onChanged: enabled ? (_) {} : null,
+          Radio<String>(
+            value: value,
+            groupValue: _paymentMethod,
+            onChanged: _isSubmitting
+                ? null
+                : (nextValue) {
+                    if (nextValue != null) {
+                      setState(() => _paymentMethod = nextValue);
+                    }
+                  },
             activeColor: const Color(0xFF9255F5),
           ),
           Container(
@@ -1711,8 +2010,12 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
           const SizedBox(height: 2),
           _summaryRow(
             label: 'Ongkos Kirim',
-            value: isPickup ? 'Rp 0' : 'Dihitung server',
-            valueFontSize: isPickup ? 15 : 12,
+            value: isPickup
+                ? 'Rp 0'
+                : _effectiveDistanceKm == null
+                ? 'Cek lokasi dahulu'
+                : 'Rp ${_formatPrice(_shippingCost)}',
+            valueFontSize: isPickup || _effectiveDistanceKm != null ? 15 : 11,
           ),
           Divider(
             height: 26,
@@ -1732,13 +2035,11 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                 ),
               ),
               Text(
-                isPickup
-                    ? 'Rp ${_formatPrice(_cartSubtotal)}'
-                    : 'Setelah order dibuat',
+                'Rp ${_formatPrice(_checkoutTotal)}',
                 textAlign: TextAlign.right,
                 style: GoogleFonts.poppins(
                   color: const Color(0xFF9255F5),
-                  fontSize: isPickup ? 20 : 13,
+                  fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -1758,7 +2059,9 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             child: Text(
               isPickup
                   ? 'Harga dan stok tetap divalidasi ulang oleh server.'
-                  : 'Ongkos kirim dan total final ditentukan Laravel setelah pesanan dibuat.',
+                  : _effectiveDistanceKm == null
+                  ? 'Cek lokasi terlebih dahulu untuk menghitung ongkos kirim.'
+                  : 'Jarak ${_effectiveDistanceKm!.toStringAsFixed(2)} km × Rp5.000/km. Harga dan stok tetap divalidasi server.',
               style: GoogleFonts.inter(
                 color: const Color(0xFF7C3AED),
                 fontSize: 10,
