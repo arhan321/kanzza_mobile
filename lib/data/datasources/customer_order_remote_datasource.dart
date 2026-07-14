@@ -58,6 +58,26 @@ class CustomerOrderRemoteDataSource {
     return _apiClient.post(ApiEndpoints.cancelOrder(orderId));
   }
 
+  Future<ApiResponse> updateOrderStatus({
+    required int orderId,
+    required String status,
+  }) {
+    return _apiClient.patch(
+      ApiEndpoints.updateOrderStatus(orderId),
+      body: {'status': status.trim().toLowerCase()},
+    );
+  }
+
+  Future<ApiResponse> assignDriver({
+    required int orderId,
+    required int driverId,
+  }) {
+    return _apiClient.post(
+      ApiEndpoints.assignDriver(orderId),
+      body: {'driver_id': driverId},
+    );
+  }
+
   Future<ApiResponse> createOrReusePayment(int orderId) {
     return _apiClient.post(ApiEndpoints.orderPayment(orderId));
   }

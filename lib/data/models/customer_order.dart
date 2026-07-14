@@ -19,16 +19,12 @@ class CustomerOrderItemModel {
     required this.subtotal,
   });
 
-  factory CustomerOrderItemModel.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory CustomerOrderItemModel.fromJson(Map<String, dynamic> json) {
     return CustomerOrderItemModel(
       id: _parseInt(json['id']),
       productId: _parseInt(json['product_id']),
-      productName:
-          json['product_name']?.toString() ?? 'Produk',
-      productSku:
-          json['product_sku']?.toString() ?? '',
+      productName: json['product_name']?.toString() ?? 'Produk',
+      productSku: json['product_sku']?.toString() ?? '',
       price: _parseInt(json['price']),
       quantity: _parseInt(json['quantity']),
       subtotal: _parseInt(json['subtotal']),
@@ -87,36 +83,24 @@ class PaymentModel {
     this.createdAt,
   });
 
-  factory PaymentModel.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory PaymentModel.fromJson(Map<String, dynamic> json) {
     return PaymentModel(
       id: _parseInt(json['id']),
       orderId: _parseInt(json['order_id']),
-      attemptNumber:
-          _parseInt(json['attempt_number']),
+      attemptNumber: _parseInt(json['attempt_number']),
       provider: json['provider']?.toString() ?? 'midtrans',
-      midtransOrderId:
-          _parseNullableString(json['midtrans_order_id']),
+      midtransOrderId: _parseNullableString(json['midtrans_order_id']),
       midtransTransactionId: _parseNullableString(
         json['midtrans_transaction_id'],
       ),
-      snapToken:
-          _parseNullableString(json['snap_token']),
-      redirectUrl:
-          _parseNullableString(json['redirect_url']),
-      paymentType:
-          _parseNullableString(json['payment_type']),
+      snapToken: _parseNullableString(json['snap_token']),
+      redirectUrl: _parseNullableString(json['redirect_url']),
+      paymentType: _parseNullableString(json['payment_type']),
       grossAmount: _parseInt(json['gross_amount']),
-      status:
-          json['status']?.toString().trim().toLowerCase() ??
-          'pending',
-      fraudStatus:
-          _parseNullableString(json['fraud_status']),
-      transactionTime:
-          _parseDateTime(json['transaction_time']),
-      settlementTime:
-          _parseDateTime(json['settlement_time']),
+      status: json['status']?.toString().trim().toLowerCase() ?? 'pending',
+      fraudStatus: _parseNullableString(json['fraud_status']),
+      transactionTime: _parseDateTime(json['transaction_time']),
+      settlementTime: _parseDateTime(json['settlement_time']),
       expiryTime: _parseDateTime(json['expiry_time']),
       paidAt: _parseDateTime(json['paid_at']),
       createdAt: _parseDateTime(json['created_at']),
@@ -128,8 +112,7 @@ class PaymentModel {
   bool get isPending => status == 'pending';
 
   bool get canOpenPayment {
-    return redirectUrl != null &&
-        redirectUrl!.trim().isNotEmpty;
+    return redirectUrl != null && redirectUrl!.trim().isNotEmpty;
   }
 
   static int _parseInt(dynamic value) {
@@ -147,9 +130,7 @@ class PaymentModel {
   static String? _parseNullableString(dynamic value) {
     final text = value?.toString().trim();
 
-    if (text == null ||
-        text.isEmpty ||
-        text.toLowerCase() == 'null') {
+    if (text == null || text.isEmpty || text.toLowerCase() == 'null') {
       return null;
     }
 
@@ -216,9 +197,7 @@ class CustomerOrderModel {
     this.updatedAt,
   });
 
-  factory CustomerOrderModel.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory CustomerOrderModel.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'];
     final rawPayment = json['latest_payment'];
     final rawAddress = json['address'];
@@ -228,28 +207,17 @@ class CustomerOrderModel {
     return CustomerOrderModel(
       id: _parseInt(json['id']),
       orderNumber:
-          json['order_number']?.toString() ??
-          'ORDER-${json['id'] ?? ''}',
-      channel:
-          json['channel']?.toString().trim().toLowerCase() ??
-          'online',
-      orderStatus: json['order_status']
-              ?.toString()
-              .trim()
-              .toLowerCase() ??
+          json['order_number']?.toString() ?? 'ORDER-${json['id'] ?? ''}',
+      channel: json['channel']?.toString().trim().toLowerCase() ?? 'online',
+      orderStatus:
+          json['order_status']?.toString().trim().toLowerCase() ??
           'pending_payment',
-      paymentStatus: json['payment_status']
-              ?.toString()
-              .trim()
-              .toLowerCase() ??
-          'unpaid',
-      deliveryMethod: json['delivery_method']
-              ?.toString()
-              .trim()
-              .toLowerCase() ??
+      paymentStatus:
+          json['payment_status']?.toString().trim().toLowerCase() ?? 'unpaid',
+      deliveryMethod:
+          json['delivery_method']?.toString().trim().toLowerCase() ??
           'delivery',
-      paymentMethod:
-          _parseNullableString(json['payment_method']),
+      paymentMethod: _parseNullableString(json['payment_method']),
       customer: rawCustomer is Map
           ? UserModel.fromJson(Map<String, dynamic>.from(rawCustomer))
           : null,
@@ -269,19 +237,16 @@ class CustomerOrderModel {
       paidAt: _parseDateTime(json['paid_at']),
       items: rawItems is List
           ? rawItems
-              .whereType<Map>()
-              .map(
-                (item) =>
-                    CustomerOrderItemModel.fromJson(
-                      Map<String, dynamic>.from(item),
-                    ),
-              )
-              .toList()
+                .whereType<Map>()
+                .map(
+                  (item) => CustomerOrderItemModel.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList()
           : const <CustomerOrderItemModel>[],
       latestPayment: rawPayment is Map
-          ? PaymentModel.fromJson(
-              Map<String, dynamic>.from(rawPayment),
-            )
+          ? PaymentModel.fromJson(Map<String, dynamic>.from(rawPayment))
           : null,
       createdAt: _parseDateTime(json['created_at']),
       updatedAt: _parseDateTime(json['updated_at']),
@@ -292,11 +257,28 @@ class CustomerOrderModel {
 
   bool get isPickup => deliveryMethod == 'pickup';
 
+  bool get isCod => paymentMethod?.trim().toLowerCase() == 'cash';
+
+  bool get isMidtrans => !isCod;
+
+  bool get canCustomerPayOnline {
+    return isMidtrans &&
+        !isPaid &&
+        !const {'cancelled', 'delivered'}.contains(orderStatus);
+  }
+
+  bool get canCustomerCancel {
+    return !isPaid &&
+        const {
+          'pending_payment',
+          'confirmed',
+          'processing',
+          'ready',
+        }.contains(orderStatus);
+  }
+
   int get totalQuantity {
-    return items.fold<int>(
-      0,
-      (total, item) => total + item.quantity,
-    );
+    return items.fold<int>(0, (total, item) => total + item.quantity);
   }
 
   static int _parseInt(dynamic value) {
@@ -314,9 +296,7 @@ class CustomerOrderModel {
   static String? _parseNullableString(dynamic value) {
     final text = value?.toString().trim();
 
-    if (text == null ||
-        text.isEmpty ||
-        text.toLowerCase() == 'null') {
+    if (text == null || text.isEmpty || text.toLowerCase() == 'null') {
       return null;
     }
 
@@ -352,12 +332,10 @@ class PaymentStatusResult {
   });
 
   bool get isPaid {
-    return payment.isPaid ||
-        orderPaymentStatus == 'paid';
+    return payment.isPaid || orderPaymentStatus == 'paid';
   }
 
   bool get isPending {
-    return payment.isPending ||
-        orderPaymentStatus == 'unpaid';
+    return payment.isPending || orderPaymentStatus == 'unpaid';
   }
 }

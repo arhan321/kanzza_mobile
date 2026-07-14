@@ -56,6 +56,13 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
       color: Color(0xFF9B5EFF),
       route: AppRoutes.transactionHistory,
     ),
+    _CashierMenuItem(
+      title: 'Pesanan Online',
+      subtitle: 'Proses pesanan customer',
+      icon: Icons.pending_actions_rounded,
+      color: Color(0xFF2196F3),
+      route: AppRoutes.cashierOrders,
+    ),
   ];
 
   @override
@@ -94,10 +101,8 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
       final user = results[0] as UserModel;
       final orders = results[1] as List<CustomerOrderModel>;
 
-      final transactions = orders
-              .map(_DashboardTransaction.fromModel)
-              .toList()
-            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final transactions = orders.map(_DashboardTransaction.fromModel).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       if (!mounted) {
         return;
@@ -750,7 +755,9 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
                       decoration: BoxDecoration(
                         color: stat.color.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: stat.color.withValues(alpha: 0.20)),
+                        border: Border.all(
+                          color: stat.color.withValues(alpha: 0.20),
+                        ),
                       ),
                       child: Text(
                         stat.badge,

@@ -1,6 +1,7 @@
 import '../../core/network/api_exception.dart';
 import '../datasources/customer_order_remote_datasource.dart';
 import '../models/customer_order.dart';
+import '../models/driver_delivery.dart';
 
 class CustomerOrderRepository {
   CustomerOrderRepository({CustomerOrderRemoteDataSource? remoteDataSource})
@@ -115,6 +116,43 @@ class CustomerOrderRepository {
     }
   }
 
+  Future<CustomerOrderModel> updateOrderStatus({
+    required int orderId,
+    required String status,
+  }) async {
+    final response = await _remoteDataSource.updateOrderStatus(
+      orderId: orderId,
+      status: status,
+    );
+
+    return _parseOrder(response.dataAsMap, 'Data perubahan status pesanan');
+  }
+
+  Future<DriverDeliveryModel> assignDriver({
+    required int orderId,
+    required int driverId,
+  }) async {
+    final response = await _remoteDataSource.assignDriver(
+      orderId: orderId,
+      driverId: driverId,
+    );
+    final data = response.dataAsMap;
+
+    if (data == null) {
+      throw const ApiException(
+        message: 'Data penugasan driver dari server tidak lengkap.',
+      );
+    }
+
+    try {
+      return DriverDeliveryModel.fromJson(data);
+    } catch (error) {
+      throw ApiException(
+        message: 'Data penugasan driver tidak dapat dibaca: $error',
+      );
+    }
+  }
+
   Future<PaymentModel> createOrReusePayment(int orderId) async {
     final response = await _remoteDataSource.createOrReusePayment(orderId);
 
@@ -180,6 +218,18 @@ class CustomerOrderRepository {
     return order.createdAt ??
         order.updatedAt ??
         DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  CustomerOrderModel _parseOrder(Map<String, dynamic>? data, String label) {
+    if (data == null) {
+      throw ApiException(message: '$label dari server tidak lengkap.');
+    }
+
+    try {
+      return CustomerOrderModel.fromJson(data);
+    } catch (error) {
+      throw ApiException(message: '$label tidak dapat dibaca: $error');
+    }
   }
 
   static bool _parseBool(dynamic value) {

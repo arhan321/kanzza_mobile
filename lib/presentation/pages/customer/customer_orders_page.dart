@@ -203,11 +203,11 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
   }
 
   bool _canCancel(CustomerOrderModel order) {
-    return !order.isPaid && order.orderStatus != 'cancelled';
+    return order.canCustomerCancel;
   }
 
   bool _canPay(CustomerOrderModel order) {
-    return !order.isPaid && order.orderStatus != 'cancelled';
+    return order.canCustomerPayOnline;
   }
 
   Future<void> _showFilterDialog() async {
@@ -1068,7 +1068,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
                             children: [
                               _detailRow(
                                 label: 'Status pembayaran',
-                                value: _paymentStatusLabel(order.paymentStatus),
+                                value: _paymentStatusLabel(order),
                                 valueColor: order.isPaid
                                     ? Colors.green.shade500
                                     : Colors.orange.shade500,
@@ -1430,7 +1430,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
   }
 
   String _orderStatusLabel(CustomerOrderModel order) {
-    if (!order.isPaid && order.orderStatus != 'cancelled') {
+    if (order.canCustomerPayOnline) {
       return 'Menunggu Bayar';
     }
 
@@ -1459,7 +1459,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
   }
 
   Color _orderStatusColor(CustomerOrderModel order) {
-    if (!order.isPaid && order.orderStatus != 'cancelled') {
+    if (order.canCustomerPayOnline) {
       return const Color(0xFFFF9800);
     }
 
@@ -1485,8 +1485,12 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
     }
   }
 
-  String _paymentStatusLabel(String status) {
-    switch (status.toLowerCase()) {
+  String _paymentStatusLabel(CustomerOrderModel order) {
+    if (order.isCod && !order.isPaid && order.orderStatus != 'cancelled') {
+      return 'Bayar ke Driver';
+    }
+
+    switch (order.paymentStatus.toLowerCase()) {
       case 'paid':
         return 'Terbayar';
       case 'unpaid':
@@ -1502,7 +1506,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       case 'refunded':
         return 'Dikembalikan';
       default:
-        return status;
+        return order.paymentStatus;
     }
   }
 
@@ -1511,7 +1515,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       case 'midtrans':
         return 'Midtrans';
       case 'cash':
-        return 'Tunai';
+        return 'COD';
       case 'bank_transfer':
         return 'Transfer Bank';
       case 'cod':
@@ -1792,7 +1796,9 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF9B5EFF).withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF9B5EFF).withValues(alpha: 0.20)),
+        border: Border.all(
+          color: const Color(0xFF9B5EFF).withValues(alpha: 0.20),
+        ),
       ),
       child: Row(
         children: [
@@ -2199,7 +2205,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
   }
 
   IconData _orderStatusIcon(CustomerOrderModel order) {
-    if (!order.isPaid && order.orderStatus != 'cancelled') {
+    if (order.canCustomerPayOnline) {
       return Icons.schedule_rounded;
     }
 

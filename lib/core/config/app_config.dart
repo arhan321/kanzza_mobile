@@ -10,10 +10,10 @@ class AppConfig {
 
   static const String applicationName = 'Kanzza Frozen Food';
 
-  // Aktifkan hanya setelah endpoint POST /orders backend menerima dan
-  // mengembalikan payment_method "cash" untuk pesanan customer.
+  // Backend Kanzza mulai commit 1cf156f mendukung COD untuk delivery.
+  // Dart define tetap tersedia untuk mematikan fitur saat memakai backend lama.
   static const bool customerCodEnabled = bool.fromEnvironment(
     'CUSTOMER_COD_ENABLED',
-    defaultValue: false,
+    defaultValue: true,
   );
 }

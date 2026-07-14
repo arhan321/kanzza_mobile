@@ -446,6 +446,14 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
       return;
     }
 
+    if (_paymentMethod == 'cash' && _deliveryMethod != 'delivery') {
+      _showSnackBar(
+        'COD hanya tersedia untuk pesanan yang diantar ke alamat.',
+        Colors.orange.shade500,
+      );
+      return;
+    }
+
     if (_deliveryMethod == 'delivery' && _selectedAddressId == null) {
       _showSnackBar(
         'Pilih atau tambahkan alamat pengiriman.',
@@ -1521,6 +1529,9 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
 
     setState(() {
       _deliveryMethod = value;
+      if (value == 'pickup' && _paymentMethod == 'cash') {
+        _paymentMethod = 'midtrans';
+      }
       _showDeliveryRoute = false;
       _checkedLocationAccuracy = null;
       _routeDistanceKm = value == 'delivery' ? null : 0;
@@ -1873,12 +1884,15 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             _paymentOption(
               value: 'cash',
               title: 'Bayar di Tempat (COD)',
-              subtitle: AppConfig.customerCodEnabled
-                  ? 'Bayar tunai saat pesanan sampai'
-                  : 'Belum didukung oleh server saat ini',
+              subtitle: !AppConfig.customerCodEnabled
+                  ? 'Belum didukung oleh server saat ini'
+                  : _deliveryMethod == 'pickup'
+                  ? 'COD hanya tersedia untuk pesanan delivery'
+                  : 'Bayar tunai saat pesanan sampai',
               icon: Icons.payments_outlined,
               isDark: isDark,
-              enabled: AppConfig.customerCodEnabled,
+              enabled:
+                  AppConfig.customerCodEnabled && _deliveryMethod == 'delivery',
             ),
             Divider(
               height: 20,
@@ -1959,7 +1973,8 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
   void _selectPaymentMethod(String? value) {
     if (value == null ||
         _isSubmitting ||
-        (value == 'cash' && !AppConfig.customerCodEnabled)) {
+        (value == 'cash' &&
+            (!AppConfig.customerCodEnabled || _deliveryMethod != 'delivery'))) {
       return;
     }
 
@@ -2161,7 +2176,11 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                   strokeWidth: 2.3,
                 ),
               )
-            : const Text('Lanjutkan ke Pembayaran'),
+            : Text(
+                _paymentMethod == 'cash'
+                    ? 'Buat Pesanan COD'
+                    : 'Lanjutkan ke Pembayaran',
+              ),
       ),
     );
   }

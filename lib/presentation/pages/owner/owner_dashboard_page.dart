@@ -7,6 +7,7 @@ import '../../../data/repositories/owner_repository.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../routes.dart';
 import 'owner_manage_role_page.dart';
+import 'owner_orders_page.dart';
 import 'owner_products_page.dart';
 import 'owner_reports_page.dart';
 
@@ -109,6 +110,7 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       _buildDashboard(),
+      const OwnerOrdersPage(),
       const OwnerProductsPage(),
       const OwnerReportsPage(),
       const OwnerManageRolePage(),
@@ -127,6 +129,11 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard_rounded),
             label: 'Dashboard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long_rounded),
+            label: 'Pesanan',
           ),
           NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),

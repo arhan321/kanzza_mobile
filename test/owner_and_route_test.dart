@@ -2,10 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:kanzza_sales_app_fe/core/config/app_config.dart';
+import 'package:kanzza_sales_app_fe/core/constants/api_endpoints.dart';
 import 'package:kanzza_sales_app_fe/core/location/road_route_service.dart';
+import 'package:kanzza_sales_app_fe/core/network/api_response.dart';
+import 'package:kanzza_sales_app_fe/data/datasources/customer_order_remote_datasource.dart';
+import 'package:kanzza_sales_app_fe/data/models/customer_order.dart';
 import 'package:kanzza_sales_app_fe/data/models/owner_dashboard.dart';
 import 'package:kanzza_sales_app_fe/data/models/owner_product_input.dart';
-import 'package:kanzza_sales_app_fe/data/models/customer_order.dart';
+import 'package:kanzza_sales_app_fe/data/repositories/customer_order_repository.dart';
 
 void main() {
   group('Owner API models', () {
@@ -61,8 +65,8 @@ void main() {
       });
     });
 
-    test('COD remains disabled until backend explicitly supports it', () {
-      expect(AppConfig.customerCodEnabled, isFalse);
+    test('COD is enabled for the current backend contract', () {
+      expect(AppConfig.customerCodEnabled, isTrue);
     });
 
     test('parses customer and cashier embedded in an order response', () {
@@ -91,6 +95,43 @@ void main() {
       expect(order.customer?.name, 'Customer Kanzza');
       expect(order.cashier, isNull);
       expect(order.totalQuantity, 3);
+    });
+
+    test('distinguishes COD actions from Midtrans payment actions', () {
+      final codOrder = CustomerOrderModel.fromJson({
+        'id': 21,
+        'order_number': 'ORD-COD-21',
+        'channel': 'online',
+        'order_status': 'confirmed',
+        'payment_status': 'unpaid',
+        'delivery_method': 'delivery',
+        'payment_method': 'cash',
+        'items': const [],
+      });
+
+      expect(codOrder.isCod, isTrue);
+      expect(codOrder.canCustomerPayOnline, isFalse);
+      expect(codOrder.canCustomerCancel, isTrue);
+      expect(ApiEndpoints.updateOrderStatus(21), '/orders/21/status');
+      expect(ApiEndpoints.assignDriver(21), '/orders/21/assign-driver');
+    });
+
+    test('parses status update and driver assignment responses', () async {
+      final remote = _FakeCustomerOrderRemoteDataSource();
+      final repository = CustomerOrderRepository(remoteDataSource: remote);
+
+      final updated = await repository.updateOrderStatus(
+        orderId: 21,
+        status: 'processing',
+      );
+      final delivery = await repository.assignDriver(orderId: 21, driverId: 3);
+
+      expect(remote.updatedOrderId, 21);
+      expect(remote.updatedStatus, 'processing');
+      expect(updated.orderStatus, 'processing');
+      expect(remote.assignedDriverId, 3);
+      expect(delivery.orderId, 21);
+      expect(delivery.driver?.isDriver, isTrue);
     });
   });
 
@@ -137,4 +178,58 @@ void main() {
       service.close();
     });
   });
+}
+
+class _FakeCustomerOrderRemoteDataSource extends CustomerOrderRemoteDataSource {
+  int? updatedOrderId;
+  String? updatedStatus;
+  int? assignedDriverId;
+
+  @override
+  Future<ApiResponse> updateOrderStatus({
+    required int orderId,
+    required String status,
+  }) async {
+    updatedOrderId = orderId;
+    updatedStatus = status;
+    return ApiResponse(
+      success: true,
+      message: 'Status diperbarui.',
+      statusCode: 200,
+      data: {
+        'id': orderId,
+        'order_number': 'ORD-$orderId',
+        'order_status': status,
+        'payment_status': 'unpaid',
+        'delivery_method': 'delivery',
+        'payment_method': 'cash',
+        'items': const [],
+      },
+    );
+  }
+
+  @override
+  Future<ApiResponse> assignDriver({
+    required int orderId,
+    required int driverId,
+  }) async {
+    assignedDriverId = driverId;
+    return ApiResponse(
+      success: true,
+      message: 'Driver ditugaskan.',
+      statusCode: 200,
+      data: {
+        'id': 9,
+        'order_id': orderId,
+        'status': 'assigned',
+        'driver': {
+          'id': driverId,
+          'name': 'Driver Kanzza',
+          'email': 'driver@kanzza.com',
+          'role': 'driver',
+          'status': 'active',
+        },
+      },
+    );
+  }
 }
