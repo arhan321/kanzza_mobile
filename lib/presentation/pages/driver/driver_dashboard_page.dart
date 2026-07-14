@@ -19,16 +19,13 @@ class DriverDashboardPage extends StatefulWidget {
   const DriverDashboardPage({super.key});
 
   @override
-  State<DriverDashboardPage> createState() =>
-      _DriverDashboardPageState();
+  State<DriverDashboardPage> createState() => _DriverDashboardPageState();
 }
 
-class _DriverDashboardPageState
-    extends State<DriverDashboardPage> {
+class _DriverDashboardPageState extends State<DriverDashboardPage> {
   final DriverDeliveryRepository _deliveryRepository =
       DriverDeliveryRepository();
-  final UserRepository _userRepository =
-      UserRepository();
+  final UserRepository _userRepository = UserRepository();
 
   final List<DriverDeliveryModel> _deliveries = [];
 
@@ -42,26 +39,11 @@ class _DriverDashboardPageState
   String? _errorMessage;
 
   static const List<_DriverFilter> _filters = [
-    _DriverFilter(
-      value: 'all',
-      label: 'Semua',
-    ),
-    _DriverFilter(
-      value: 'assigned',
-      label: 'Ditugaskan',
-    ),
-    _DriverFilter(
-      value: 'picked_up',
-      label: 'Diambil',
-    ),
-    _DriverFilter(
-      value: 'on_delivery',
-      label: 'Dikirim',
-    ),
-    _DriverFilter(
-      value: 'delivered',
-      label: 'Selesai',
-    ),
+    _DriverFilter(value: 'all', label: 'Semua'),
+    _DriverFilter(value: 'assigned', label: 'Ditugaskan'),
+    _DriverFilter(value: 'picked_up', label: 'Diambil'),
+    _DriverFilter(value: 'on_delivery', label: 'Dikirim'),
+    _DriverFilter(value: 'delivered', label: 'Selesai'),
   ];
 
   @override
@@ -70,9 +52,7 @@ class _DriverDashboardPageState
     _loadDashboard();
   }
 
-  Future<void> _loadDashboard({
-    bool isRefresh = false,
-  }) async {
+  Future<void> _loadDashboard({bool isRefresh = false}) async {
     if (mounted) {
       setState(() {
         if (isRefresh) {
@@ -86,8 +66,7 @@ class _DriverDashboardPageState
     }
 
     try {
-      final cachedUser =
-          await _userRepository.getCachedUser();
+      final cachedUser = await _userRepository.getCachedUser();
 
       if (mounted && cachedUser != null) {
         setState(() {
@@ -97,14 +76,11 @@ class _DriverDashboardPageState
 
       final results = await Future.wait<dynamic>([
         _userRepository.getProfile(),
-        _deliveryRepository.getDeliveries(
-          perPage: 100,
-        ),
+        _deliveryRepository.getDeliveries(perPage: 100),
       ]);
 
       final driver = results[0] as UserModel;
-      final deliveries =
-          results[1] as List<DriverDeliveryModel>;
+      final deliveries = results[1] as List<DriverDeliveryModel>;
 
       if (!mounted) {
         return;
@@ -128,13 +104,9 @@ class _DriverDashboardPageState
 
       _handleLoadError(error.firstValidationError);
     } catch (error) {
-      debugPrint(
-        'LOAD DRIVER DASHBOARD ERROR: $error',
-      );
+      debugPrint('LOAD DRIVER DASHBOARD ERROR: $error');
 
-      _handleLoadError(
-        'Data pengiriman gagal dimuat. Silakan coba kembali.',
-      );
+      _handleLoadError('Data pengiriman gagal dimuat. Silakan coba kembali.');
     }
   }
 
@@ -157,10 +129,9 @@ class _DriverDashboardPageState
       return;
     }
 
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.login,
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
   }
 
   Future<void> _refresh() async {
@@ -173,47 +144,32 @@ class _DriverDashboardPageState
 
   List<DriverDeliveryModel> get _filteredDeliveries {
     if (_selectedFilter == 'all') {
-      return List<DriverDeliveryModel>.from(
-        _deliveries,
-      );
+      return List<DriverDeliveryModel>.from(_deliveries);
     }
 
     return _deliveries
-        .where(
-          (delivery) =>
-              delivery.status == _selectedFilter,
-        )
+        .where((delivery) => delivery.status == _selectedFilter)
         .toList();
   }
 
   int get _assignedCount {
-    return _deliveries
-        .where((delivery) => delivery.isAssigned)
-        .length;
+    return _deliveries.where((delivery) => delivery.isAssigned).length;
   }
 
   int get _pickedUpCount {
-    return _deliveries
-        .where((delivery) => delivery.isPickedUp)
-        .length;
+    return _deliveries.where((delivery) => delivery.isPickedUp).length;
   }
 
   int get _onDeliveryCount {
-    return _deliveries
-        .where((delivery) => delivery.isOnDelivery)
-        .length;
+    return _deliveries.where((delivery) => delivery.isOnDelivery).length;
   }
 
   int get _deliveredCount {
-    return _deliveries
-        .where((delivery) => delivery.isDelivered)
-        .length;
+    return _deliveries.where((delivery) => delivery.isDelivered).length;
   }
 
   int get _activeCount {
-    return _deliveries
-        .where((delivery) => delivery.isActive)
-        .length;
+    return _deliveries.where((delivery) => delivery.isActive).length;
   }
 
   int get _todayAssignedCount {
@@ -249,50 +205,38 @@ class _DriverDashboardPageState
         return AlertDialog(
           backgroundColor: theme.cardColor,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20),
             side: BorderSide(
-              color: isDark
-                  ? const Color(0xFF1E1E35)
-                  : const Color(0xFFE5E7EB),
+              color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
             ),
           ),
           title: Text(
             'Konfirmasi Logout',
             style: GoogleFonts.poppins(
-              color:
-                  theme.textTheme.titleLarge?.color,
+              color: theme.textTheme.titleLarge?.color,
               fontWeight: FontWeight.w700,
             ),
           ),
           content: Text(
             'Apakah Anda yakin ingin keluar dari akun driver?',
             style: GoogleFonts.inter(
-              color:
-                  theme.textTheme.bodyMedium?.color,
+              color: theme.textTheme.bodyMedium?.color,
               height: 1.5,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  false,
-                );
+                Navigator.pop(dialogContext, false);
               },
               child: const Text('Batal'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  true,
-                );
+                Navigator.pop(dialogContext, true);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    Colors.red.shade400,
+                backgroundColor: Colors.red.shade400,
                 foregroundColor: Colors.white,
               ),
               child: const Text('Logout'),
@@ -316,28 +260,22 @@ class _DriverDashboardPageState
       _isLoggingOut = true;
     });
 
-    try {
-      await _userRepository.logout();
-    } finally {
-      if (!mounted) {
-        return;
-      }
+    await _userRepository.logout();
 
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.login,
-        (route) => false,
-      );
+    if (!mounted) {
+      return;
     }
+
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
   }
 
-  Future<void> _openDeliveryDetail(
-    DriverDeliveryModel delivery,
-  ) async {
+  Future<void> _openDeliveryDetail(DriverDeliveryModel delivery) async {
     DriverDeliveryModel selectedDelivery = delivery;
 
     try {
-      selectedDelivery =
-          await _deliveryRepository.getDeliveryDetail(
+      selectedDelivery = await _deliveryRepository.getDeliveryDetail(
         delivery.id,
       );
     } on ApiException catch (error) {
@@ -347,29 +285,20 @@ class _DriverDashboardPageState
       }
 
       if (mounted) {
-        _showSnackBar(
-          error.firstValidationError,
-          Colors.orange.shade500,
-        );
+        _showSnackBar(error.firstValidationError, Colors.orange.shade500);
       }
     } catch (error) {
-      debugPrint(
-        'GET DRIVER DELIVERY DETAIL ERROR: $error',
-      );
+      debugPrint('GET DRIVER DELIVERY DETAIL ERROR: $error');
     }
 
     if (!mounted) {
       return;
     }
 
-    await _showDeliveryDetailSheet(
-      selectedDelivery,
-    );
+    await _showDeliveryDetailSheet(selectedDelivery);
   }
 
-  Future<void> _showDeliveryDetailSheet(
-    DriverDeliveryModel delivery,
-  ) {
+  Future<void> _showDeliveryDetailSheet(DriverDeliveryModel delivery) {
     final isDark = Provider.of<ThemeProvider>(
       context,
       listen: false,
@@ -380,8 +309,7 @@ class _DriverDashboardPageState
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (bottomSheetContext) {
-        final theme =
-            Theme.of(bottomSheetContext);
+        final theme = Theme.of(bottomSheetContext);
         final order = delivery.order;
 
         return SafeArea(
@@ -389,34 +317,21 @@ class _DriverDashboardPageState
             heightFactor: 0.92,
             child: Container(
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF16162A)
-                    : Colors.white,
-                borderRadius:
-                    const BorderRadius.vertical(
+                color: isDark ? const Color(0xFF16162A) : Colors.white,
+                borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(26),
                 ),
               ),
               child: Column(
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.fromLTRB(
-                      20,
-                      12,
-                      12,
-                      12,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
                     decoration: BoxDecoration(
                       border: Border(
                         bottom: BorderSide(
                           color: isDark
-                              ? const Color(
-                                  0xFF1E1E35,
-                                )
-                              : const Color(
-                                  0xFFE5E7EB,
-                                ),
+                              ? const Color(0xFF1E1E35)
+                              : const Color(0xFFE5E7EB),
                         ),
                       ),
                     ),
@@ -425,105 +340,64 @@ class _DriverDashboardPageState
                         Expanded(
                           child: Text(
                             'Detail Pengiriman',
-                            style:
-                                GoogleFonts.poppins(
-                              color: theme
-                                  .textTheme
-                                  .titleLarge
-                                  ?.color,
+                            style: GoogleFonts.poppins(
+                              color: theme.textTheme.titleLarge?.color,
                               fontSize: 17,
-                              fontWeight:
-                                  FontWeight.w700,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
                         IconButton(
                           onPressed: () {
-                            Navigator.pop(
-                              bottomSheetContext,
-                            );
+                            Navigator.pop(bottomSheetContext);
                           },
-                          icon: const Icon(
-                            Icons.close_rounded,
-                          ),
+                          icon: const Icon(Icons.close_rounded),
                         ),
                       ],
                     ),
                   ),
                   Expanded(
-                    child:
-                        SingleChildScrollView(
-                      padding:
-                          const EdgeInsets.fromLTRB(
-                        20,
-                        18,
-                        20,
-                        28,
-                      ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
                               Container(
                                 width: 50,
                                 height: 50,
-                                decoration:
-                                    BoxDecoration(
-                                  color:
-                                      _statusColor(
+                                decoration: BoxDecoration(
+                                  color: _statusColor(
                                     delivery.status,
-                                  ).withOpacity(0.12),
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(14),
+                                  ).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Icon(
-                                  _statusIcon(
-                                    delivery.status,
-                                  ),
-                                  color:
-                                      _statusColor(
-                                    delivery.status,
-                                  ),
+                                  _statusIcon(delivery.status),
+                                  color: _statusColor(delivery.status),
                                   size: 26,
                                 ),
                               ),
                               const SizedBox(width: 11),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment
-                                          .start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      delivery
-                                          .orderNumber,
-                                      style: GoogleFonts
-                                          .poppins(
-                                        color: theme
-                                            .textTheme
-                                            .titleLarge
-                                            ?.color,
+                                      delivery.orderNumber,
+                                      style: GoogleFonts.poppins(
+                                        color:
+                                            theme.textTheme.titleLarge?.color,
                                         fontSize: 16,
-                                        fontWeight:
-                                            FontWeight
-                                                .w700,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                     const SizedBox(height: 3),
                                     Text(
-                                      _formatDateTime(
-                                        delivery
-                                            .sortDate,
-                                      ),
-                                      style:
-                                          GoogleFonts.inter(
-                                        color: theme
-                                            .textTheme
-                                            .bodySmall
-                                            ?.color,
+                                      _formatDateTime(delivery.sortDate),
+                                      style: GoogleFonts.inter(
+                                        color: theme.textTheme.bodySmall?.color,
                                         fontSize: 10,
                                       ),
                                     ),
@@ -531,14 +405,8 @@ class _DriverDashboardPageState
                                 ),
                               ),
                               _statusBadge(
-                                label:
-                                    _statusLabel(
-                                  delivery.status,
-                                ),
-                                color:
-                                    _statusColor(
-                                  delivery.status,
-                                ),
+                                label: _statusLabel(delivery.status),
+                                color: _statusColor(delivery.status),
                               ),
                             ],
                           ),
@@ -548,59 +416,36 @@ class _DriverDashboardPageState
                             children: [
                               _detailRow(
                                 label: 'Customer',
-                                value:
-                                    order?.customerName ??
-                                    'Customer',
+                                value: order?.customerName ?? 'Customer',
                               ),
                               _detailRow(
-                                label:
-                                    'Nomor telepon',
-                                value:
-                                    order?.customerPhone ??
-                                    '-',
+                                label: 'Nomor telepon',
+                                value: order?.customerPhone ?? '-',
                               ),
                               _detailRow(
-                                label:
-                                    'Status pembayaran',
-                                value:
-                                    _paymentStatusLabel(
-                                  order
-                                          ?.paymentStatus ??
-                                      '-',
+                                label: 'Status pembayaran',
+                                value: _paymentStatusLabel(
+                                  order?.paymentStatus ?? '-',
                                 ),
-                                valueColor:
-                                    order?.paymentStatus ==
-                                            'paid'
-                                        ? Colors
-                                            .green
-                                            .shade500
-                                        : Colors
-                                            .orange
-                                            .shade500,
+                                valueColor: order?.paymentStatus == 'paid'
+                                    ? Colors.green.shade500
+                                    : Colors.orange.shade500,
                               ),
                               _detailRow(
-                                label:
-                                    'Metode pembayaran',
-                                value:
-                                    _paymentMethodLabel(
-                                  order
-                                      ?.paymentMethod,
+                                label: 'Metode pembayaran',
+                                value: _paymentMethodLabel(
+                                  order?.paymentMethod,
                                 ),
                               ),
                               _detailRow(
-                                label:
-                                    'Jumlah produk',
-                                value:
-                                    '${order?.totalQuantity ?? 0} item',
+                                label: 'Jumlah produk',
+                                value: '${order?.totalQuantity ?? 0} item',
                               ),
                               _detailRow(
                                 label: 'Total',
                                 value:
                                     'Rp ${_formatPrice(order?.grandTotal ?? 0)}',
-                                valueColor:
-                                    const Color(
-                                  0xFF9B5EFF,
-                                ),
+                                valueColor: const Color(0xFF9B5EFF),
                                 bold: true,
                               ),
                             ],
@@ -608,151 +453,81 @@ class _DriverDashboardPageState
                           const SizedBox(height: 16),
                           Text(
                             'Alamat Pengiriman',
-                            style:
-                                GoogleFonts.poppins(
-                              color: theme
-                                  .textTheme
-                                  .titleLarge
-                                  ?.color,
+                            style: GoogleFonts.poppins(
+                              color: theme.textTheme.titleLarge?.color,
                               fontSize: 14,
-                              fontWeight:
-                                  FontWeight.w700,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          _buildAddressCard(
-                            order,
-                            isDark,
-                          ),
+                          _buildAddressCard(order, isDark),
                           const SizedBox(height: 16),
                           Text(
                             'Rincian Produk',
-                            style:
-                                GoogleFonts.poppins(
-                              color: theme
-                                  .textTheme
-                                  .titleLarge
-                                  ?.color,
+                            style: GoogleFonts.poppins(
+                              color: theme.textTheme.titleLarge?.color,
                               fontSize: 14,
-                              fontWeight:
-                                  FontWeight.w700,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          if (order == null ||
-                              order.items.isEmpty)
+                          if (order == null || order.items.isEmpty)
                             _emptyItems(isDark)
                           else
                             ...order.items.map(
-                              (item) =>
-                                  _buildItemCard(
-                                item,
-                                isDark,
-                              ),
+                              (item) => _buildItemCard(item, isDark),
                             ),
                           if (order?.notes != null &&
-                              order!.notes!
-                                  .trim()
-                                  .isNotEmpty) ...[
+                              order!.notes!.trim().isNotEmpty) ...[
                             const SizedBox(height: 16),
                             Text(
                               'Catatan Pesanan',
-                              style:
-                                  GoogleFonts.poppins(
-                                color: theme
-                                    .textTheme
-                                    .titleLarge
-                                    ?.color,
+                              style: GoogleFonts.poppins(
+                                color: theme.textTheme.titleLarge?.color,
                                 fontSize: 14,
-                                fontWeight:
-                                    FontWeight.w700,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            _noteCard(
-                              order.notes!,
-                              isDark,
-                            ),
+                            _noteCard(order.notes!, isDark),
                           ],
                           if (delivery.notes != null &&
-                              delivery.notes!
-                                  .trim()
-                                  .isNotEmpty) ...[
+                              delivery.notes!.trim().isNotEmpty) ...[
                             const SizedBox(height: 16),
                             Text(
                               'Catatan Driver',
-                              style:
-                                  GoogleFonts.poppins(
-                                color: theme
-                                    .textTheme
-                                    .titleLarge
-                                    ?.color,
+                              style: GoogleFonts.poppins(
+                                color: theme.textTheme.titleLarge?.color,
                                 fontSize: 14,
-                                fontWeight:
-                                    FontWeight.w700,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            _noteCard(
-                              delivery.notes!,
-                              isDark,
-                            ),
+                            _noteCard(delivery.notes!, isDark),
                           ],
                           const SizedBox(height: 18),
-                          _buildTimeline(
-                            delivery,
-                            isDark,
-                          ),
-                          if (delivery.nextStatus !=
-                              null) ...[
+                          _buildTimeline(delivery, isDark),
+                          if (delivery.nextStatus != null) ...[
                             const SizedBox(height: 22),
                             SizedBox(
                               width: double.infinity,
-                              child:
-                                  ElevatedButton.icon(
-                                onPressed:
-                                    _processingDeliveryId ==
-                                            delivery.id
-                                        ? null
-                                        : () async {
-                                            Navigator.pop(
-                                              bottomSheetContext,
-                                            );
-                                            await _confirmStatusUpdate(
-                                              delivery,
-                                            );
-                                          },
-                                icon: Icon(
-                                  _nextActionIcon(
-                                    delivery.status,
-                                  ),
-                                ),
-                                label: Text(
-                                  _nextActionLabel(
-                                    delivery.status,
-                                  ),
-                                ),
-                                style:
-                                    ElevatedButton
-                                        .styleFrom(
-                                  backgroundColor:
-                                      const Color(
-                                    0xFF9B5EFF,
-                                  ),
-                                  foregroundColor:
-                                      Colors.white,
-                                  padding:
-                                      const EdgeInsets
-                                          .symmetric(
+                              child: ElevatedButton.icon(
+                                onPressed: _processingDeliveryId == delivery.id
+                                    ? null
+                                    : () async {
+                                        Navigator.pop(bottomSheetContext);
+                                        await _confirmStatusUpdate(delivery);
+                                      },
+                                icon: Icon(_nextActionIcon(delivery.status)),
+                                label: Text(_nextActionLabel(delivery.status)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF9B5EFF),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
                                     vertical: 14,
                                   ),
-                                  shape:
-                                      RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius
-                                            .circular(
-                                      13,
-                                    ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(13),
                                   ),
                                 ),
                               ),
@@ -771,30 +546,21 @@ class _DriverDashboardPageState
     );
   }
 
-  Widget _buildAddressCard(
-    DriverDeliveryOrderModel? order,
-    bool isDark,
-  ) {
+  Widget _buildAddressCard(DriverDeliveryOrderModel? order, bool isDark) {
     final theme = Theme.of(context);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1E1E35)
-            : const Color(0xFFF7F7FB),
-        borderRadius:
-            BorderRadius.circular(13),
+        color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(13),
         border: Border.all(
-          color: isDark
-              ? const Color(0xFF2A2A42)
-              : const Color(0xFFE5E7EB),
+          color: isDark ? const Color(0xFF2A2A42) : const Color(0xFFE5E7EB),
         ),
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.location_on_outlined,
@@ -804,48 +570,35 @@ class _DriverDashboardPageState
           const SizedBox(width: 9),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  order?.fullAddress ??
-                      'Alamat tidak tersedia',
+                  order?.fullAddress ?? 'Alamat tidak tersedia',
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .titleLarge
-                        ?.color,
+                    color: theme.textTheme.titleLarge?.color,
                     fontSize: 11,
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                     height: 1.45,
                   ),
                 ),
-                if (order != null &&
-                    order.locationSummary
-                        .isNotEmpty) ...[
+                if (order != null && order.locationSummary.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     order.locationSummary,
                     style: GoogleFonts.inter(
-                      color: theme
-                          .textTheme
-                          .bodySmall
-                          ?.color,
+                      color: theme.textTheme.bodySmall?.color,
                       fontSize: 9,
                     ),
                   ),
                 ],
-                if (order?.latitude != null &&
-                    order?.longitude != null) ...[
+                if (order?.latitude != null && order?.longitude != null) ...[
                   const SizedBox(height: 6),
                   Text(
                     'Koordinat: '
                     '${order!.latitude!.toStringAsFixed(6)}, '
                     '${order.longitude!.toStringAsFixed(6)}',
                     style: GoogleFonts.inter(
-                      color:
-                          const Color(0xFF9B5EFF),
+                      color: const Color(0xFF9B5EFF),
                       fontSize: 9,
                     ),
                   ),
@@ -858,21 +611,15 @@ class _DriverDashboardPageState
     );
   }
 
-  Widget _buildItemCard(
-    DriverDeliveryItemModel item,
-    bool isDark,
-  ) {
+  Widget _buildItemCard(DriverDeliveryItemModel item, bool isDark) {
     final theme = Theme.of(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1E1E35)
-            : const Color(0xFFF7F7FB),
-        borderRadius:
-            BorderRadius.circular(12),
+        color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
@@ -880,11 +627,8 @@ class _DriverDashboardPageState
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color:
-                  const Color(0xFF9B5EFF)
-                      .withOpacity(0.12),
-              borderRadius:
-                  BorderRadius.circular(10),
+              color: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
               Icons.inventory_2_outlined,
@@ -895,32 +639,23 @@ class _DriverDashboardPageState
           const SizedBox(width: 9),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.productName,
                   maxLines: 2,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .titleLarge
-                        ?.color,
+                    color: theme.textTheme.titleLarge?.color,
                     fontSize: 11,
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   '${item.quantity} × Rp ${_formatPrice(item.price)}',
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .bodySmall
-                        ?.color,
+                    color: theme.textTheme.bodySmall?.color,
                     fontSize: 9,
                   ),
                 ),
@@ -931,8 +666,7 @@ class _DriverDashboardPageState
           Text(
             'Rp ${_formatPrice(item.subtotal)}',
             style: GoogleFonts.poppins(
-              color:
-                  const Color(0xFF9B5EFF),
+              color: const Color(0xFF9B5EFF),
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
@@ -949,45 +683,34 @@ class _DriverDashboardPageState
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1E1E35)
-            : const Color(0xFFF7F7FB),
-        borderRadius:
-            BorderRadius.circular(12),
+        color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         'Rincian produk tidak tersedia.',
         textAlign: TextAlign.center,
         style: GoogleFonts.inter(
-          color:
-              theme.textTheme.bodySmall?.color,
+          color: theme.textTheme.bodySmall?.color,
           fontSize: 11,
         ),
       ),
     );
   }
 
-  Widget _noteCard(
-    String note,
-    bool isDark,
-  ) {
+  Widget _noteCard(String note, bool isDark) {
     final theme = Theme.of(context);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1E1E35)
-            : const Color(0xFFF7F7FB),
-        borderRadius:
-            BorderRadius.circular(12),
+        color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         note,
         style: GoogleFonts.inter(
-          color:
-              theme.textTheme.bodyMedium?.color,
+          color: theme.textTheme.bodyMedium?.color,
           fontSize: 11,
           height: 1.5,
         ),
@@ -995,21 +718,14 @@ class _DriverDashboardPageState
     );
   }
 
-  Widget _buildTimeline(
-    DriverDeliveryModel delivery,
-    bool isDark,
-  ) {
+  Widget _buildTimeline(DriverDeliveryModel delivery, bool isDark) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Perjalanan Pengiriman',
           style: GoogleFonts.poppins(
-            color: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.color,
+            color: Theme.of(context).textTheme.titleLarge?.color,
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
@@ -1018,35 +734,30 @@ class _DriverDashboardPageState
         _timelineItem(
           title: 'Driver ditugaskan',
           date: delivery.assignedAt,
-          completed:
-              delivery.assignedAt != null,
+          completed: delivery.assignedAt != null,
           isLast: false,
           isDark: isDark,
         ),
         _timelineItem(
           title: 'Pesanan diambil',
           date: delivery.pickedUpAt,
-          completed:
-              delivery.pickedUpAt != null,
+          completed: delivery.pickedUpAt != null,
           isLast: false,
           isDark: isDark,
         ),
         _timelineItem(
           title: 'Sedang dikirim',
-          date: delivery.isOnDelivery ||
-                  delivery.isDelivered
+          date: delivery.isOnDelivery || delivery.isDelivered
               ? delivery.updatedAt
               : null,
-          completed: delivery.isOnDelivery ||
-              delivery.isDelivered,
+          completed: delivery.isOnDelivery || delivery.isDelivered,
           isLast: false,
           isDark: isDark,
         ),
         _timelineItem(
           title: 'Pesanan selesai',
           date: delivery.deliveredAt,
-          completed:
-              delivery.deliveredAt != null,
+          completed: delivery.deliveredAt != null,
           isLast: true,
           isDark: isDark,
         ),
@@ -1064,12 +775,10 @@ class _DriverDashboardPageState
     final theme = Theme.of(context);
     final color = completed
         ? const Color(0xFF4CAF50)
-        : theme.textTheme.bodySmall?.color ??
-            const Color(0xFF9CA3AF);
+        : theme.textTheme.bodySmall?.color ?? const Color(0xFF9CA3AF);
 
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 28,
@@ -1079,14 +788,9 @@ class _DriverDashboardPageState
                 width: 18,
                 height: 18,
                 decoration: BoxDecoration(
-                  color: completed
-                      ? color
-                      : Colors.transparent,
+                  color: completed ? color : Colors.transparent,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: color,
-                    width: 2,
-                  ),
+                  border: Border.all(color: color, width: 2),
                 ),
                 child: completed
                     ? const Icon(
@@ -1101,10 +805,10 @@ class _DriverDashboardPageState
                   width: 2,
                   height: 38,
                   color: completed
-                      ? color.withOpacity(0.45)
+                      ? color.withValues(alpha: 0.45)
                       : isDark
-                          ? const Color(0xFF2A2A42)
-                          : const Color(0xFFE5E7EB),
+                      ? const Color(0xFF2A2A42)
+                      : const Color(0xFFE5E7EB),
                 ),
             ],
           ),
@@ -1112,34 +816,23 @@ class _DriverDashboardPageState
         const SizedBox(width: 8),
         Expanded(
           child: Padding(
-            padding:
-                const EdgeInsets.only(bottom: 18),
+            padding: const EdgeInsets.only(bottom: 18),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .titleLarge
-                        ?.color,
+                    color: theme.textTheme.titleLarge?.color,
                     fontSize: 11,
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  date == null
-                      ? 'Belum dilakukan'
-                      : _formatDateTime(date),
+                  date == null ? 'Belum dilakukan' : _formatDateTime(date),
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .bodySmall
-                        ?.color,
+                    color: theme.textTheme.bodySmall?.color,
                     fontSize: 9,
                   ),
                 ),
@@ -1158,15 +851,10 @@ class _DriverDashboardPageState
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1E1E35)
-            : const Color(0xFFF7F7FB),
-        borderRadius:
-            BorderRadius.circular(13),
+        color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(13),
       ),
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 
@@ -1179,18 +867,15 @@ class _DriverDashboardPageState
     final theme = Theme.of(context);
 
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Text(
               label,
               style: GoogleFonts.inter(
-                color:
-                    theme.textTheme.bodySmall?.color,
+                color: theme.textTheme.bodySmall?.color,
                 fontSize: 11,
               ),
             ),
@@ -1201,15 +886,9 @@ class _DriverDashboardPageState
               value,
               textAlign: TextAlign.right,
               style: GoogleFonts.inter(
-                color: valueColor ??
-                    theme
-                        .textTheme
-                        .titleLarge
-                        ?.color,
+                color: valueColor ?? theme.textTheme.titleLarge?.color,
                 fontSize: 11,
-                fontWeight: bold
-                    ? FontWeight.w800
-                    : FontWeight.w600,
+                fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
               ),
             ),
           ),
@@ -1218,18 +897,14 @@ class _DriverDashboardPageState
     );
   }
 
-  Future<void> _confirmStatusUpdate(
-    DriverDeliveryModel delivery,
-  ) async {
+  Future<void> _confirmStatusUpdate(DriverDeliveryModel delivery) async {
     final nextStatus = delivery.nextStatus;
 
-    if (nextStatus == null ||
-        _processingDeliveryId != null) {
+    if (nextStatus == null || _processingDeliveryId != null) {
       return;
     }
 
-    final result =
-        await _showStatusUpdateDialog(
+    final result = await _showStatusUpdateDialog(
       delivery: delivery,
       nextStatus: nextStatus,
     );
@@ -1246,15 +921,11 @@ class _DriverDashboardPageState
     );
   }
 
-  Future<_StatusUpdateResult?>
-      _showStatusUpdateDialog({
+  Future<_StatusUpdateResult?> _showStatusUpdateDialog({
     required DriverDeliveryModel delivery,
     required String nextStatus,
   }) {
-    final notesController =
-        TextEditingController(
-      text: delivery.notes ?? '',
-    );
+    final notesController = TextEditingController(text: delivery.notes ?? '');
     final theme = Theme.of(context);
     final isDark = Provider.of<ThemeProvider>(
       context,
@@ -1262,10 +933,8 @@ class _DriverDashboardPageState
     ).isDarkMode;
     final requiresCodConfirmation =
         nextStatus == 'delivered' &&
-        delivery.order?.paymentMethod?.toLowerCase() ==
-            'cash';
-    final paymentReceivedNotifier =
-        ValueNotifier<bool>(false);
+        delivery.order?.paymentMethod?.toLowerCase() == 'cash';
+    final paymentReceivedNotifier = ValueNotifier<bool>(false);
 
     return showDialog<_StatusUpdateResult>(
       context: context,
@@ -1273,36 +942,28 @@ class _DriverDashboardPageState
         return AlertDialog(
           backgroundColor: theme.cardColor,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20),
             side: BorderSide(
-              color: isDark
-                  ? const Color(0xFF1E1E35)
-                  : const Color(0xFFE5E7EB),
+              color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
             ),
           ),
           title: Text(
             _nextActionLabel(delivery.status),
             style: GoogleFonts.poppins(
-              color:
-                  theme.textTheme.titleLarge?.color,
+              color: theme.textTheme.titleLarge?.color,
               fontWeight: FontWeight.w700,
             ),
           ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Status ${delivery.orderNumber} akan diubah menjadi '
                   '${_statusLabel(nextStatus)}.',
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .bodyMedium
-                        ?.color,
+                    color: theme.textTheme.bodyMedium?.color,
                     fontSize: 12,
                     height: 1.5,
                   ),
@@ -1310,22 +971,14 @@ class _DriverDashboardPageState
                 if (requiresCodConfirmation) ...[
                   const SizedBox(height: 13),
                   ValueListenableBuilder<bool>(
-                    valueListenable:
-                        paymentReceivedNotifier,
-                    builder: (
-                      context,
-                      paymentReceived,
-                      child,
-                    ) {
+                    valueListenable: paymentReceivedNotifier,
+                    builder: (context, paymentReceived, child) {
                       return Container(
                         decoration: BoxDecoration(
                           color: paymentReceived
-                              ? Colors.green
-                                  .withOpacity(0.09)
-                              : Colors.orange
-                                  .withOpacity(0.09),
-                          borderRadius:
-                              BorderRadius.circular(12),
+                              ? Colors.green.withValues(alpha: 0.09)
+                              : Colors.orange.withValues(alpha: 0.09),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: paymentReceived
                                 ? Colors.green.shade400
@@ -1335,33 +988,22 @@ class _DriverDashboardPageState
                         child: CheckboxListTile(
                           value: paymentReceived,
                           onChanged: (value) {
-                            paymentReceivedNotifier
-                                .value = value ?? false;
+                            paymentReceivedNotifier.value = value ?? false;
                           },
-                          controlAffinity:
-                              ListTileControlAffinity
-                                  .leading,
-                          activeColor:
-                              Colors.green.shade600,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          activeColor: Colors.green.shade600,
                           title: Text(
                             'Pesanan sudah tiba dan pembayaran COD sudah diterima',
                             style: GoogleFonts.inter(
-                              color: theme
-                                  .textTheme
-                                  .titleLarge
-                                  ?.color,
+                              color: theme.textTheme.titleLarge?.color,
                               fontSize: 12,
-                              fontWeight:
-                                  FontWeight.w700,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           subtitle: Text(
                             'Pastikan uang tunai Rp ${_formatPrice(delivery.order?.grandTotal ?? 0)} sudah diterima.',
                             style: GoogleFonts.inter(
-                              color: theme
-                                  .textTheme
-                                  .bodySmall
-                                  ?.color,
+                              color: theme.textTheme.bodySmall?.color,
                               fontSize: 10,
                               height: 1.4,
                             ),
@@ -1377,33 +1019,23 @@ class _DriverDashboardPageState
                   maxLines: 3,
                   maxLength: 1000,
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .titleLarge
-                        ?.color,
+                    color: theme.textTheme.titleLarge?.color,
                     fontSize: 12,
                   ),
                   decoration: InputDecoration(
-                    labelText:
-                        'Catatan driver (opsional)',
-                    hintText:
-                        'Contoh: pesanan diterima oleh customer',
+                    labelText: 'Catatan driver (opsional)',
+                    hintText: 'Contoh: pesanan diterima oleh customer',
                     filled: true,
                     fillColor: isDark
                         ? const Color(0xFF1E1E35)
                         : const Color(0xFFF7F7FB),
                     border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    focusedBorder:
-                        OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(
-                        color:
-                            Color(0xFF9B5EFF),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF9B5EFF),
                         width: 1.5,
                       ),
                     ),
@@ -1413,21 +1045,17 @@ class _DriverDashboardPageState
                   const SizedBox(height: 8),
                   Container(
                     width: double.infinity,
-                    padding:
-                        const EdgeInsets.all(11),
+                    padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
-                      color: Colors.orange
-                          .withOpacity(0.09),
-                      borderRadius:
-                          BorderRadius.circular(11),
+                      color: Colors.orange.withValues(alpha: 0.09),
+                      borderRadius: BorderRadius.circular(11),
                     ),
                     child: Text(
                       'Backend saat ini hanya menerima proof_image_path '
                       'berupa teks dan belum menyediakan endpoint upload foto. '
                       'Karena itu bukti foto belum dikirim dari halaman ini.',
                       style: GoogleFonts.inter(
-                        color:
-                            Colors.orange.shade700,
+                        color: Colors.orange.shade700,
                         fontSize: 10,
                         height: 1.45,
                       ),
@@ -1446,38 +1074,27 @@ class _DriverDashboardPageState
             ),
             ValueListenableBuilder<bool>(
               valueListenable: paymentReceivedNotifier,
-              builder: (
-                context,
-                paymentReceived,
-                child,
-              ) {
+              builder: (context, paymentReceived, child) {
                 return ElevatedButton(
-                  onPressed: requiresCodConfirmation &&
-                          !paymentReceived
+                  onPressed: requiresCodConfirmation && !paymentReceived
                       ? null
                       : () {
                           Navigator.pop(
                             dialogContext,
                             _StatusUpdateResult(
-                              notes: notesController
-                                  .text
-                                  .trim(),
-                              paymentReceived:
-                                  requiresCodConfirmation
-                                      ? true
-                                      : null,
+                              notes: notesController.text.trim(),
+                              paymentReceived: requiresCodConfirmation
+                                  ? true
+                                  : null,
                             ),
                           );
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color(0xFF9B5EFF),
+                    backgroundColor: const Color(0xFF9B5EFF),
                     foregroundColor: Colors.white,
                   ),
                   child: Text(
-                    requiresCodConfirmation
-                        ? 'Konfirmasi COD'
-                        : 'Konfirmasi',
+                    requiresCodConfirmation ? 'Konfirmasi COD' : 'Konfirmasi',
                   ),
                 );
               },
@@ -1502,9 +1119,7 @@ class _DriverDashboardPageState
     });
 
     try {
-      final updated =
-          await _deliveryRepository
-              .updateDeliveryStatus(
+      final updated = await _deliveryRepository.updateDeliveryStatus(
         deliveryId: delivery.id,
         status: nextStatus,
         notes: notes,
@@ -1515,9 +1130,7 @@ class _DriverDashboardPageState
         return;
       }
 
-      final index = _deliveries.indexWhere(
-        (item) => item.id == updated.id,
-      );
+      final index = _deliveries.indexWhere((item) => item.id == updated.id);
 
       setState(() {
         if (index >= 0) {
@@ -1544,23 +1157,15 @@ class _DriverDashboardPageState
         return;
       }
 
-      _showSnackBar(
-        error.firstValidationError,
-        Colors.red.shade400,
-      );
+      _showSnackBar(error.firstValidationError, Colors.red.shade400);
     } catch (error) {
-      debugPrint(
-        'UPDATE DRIVER DELIVERY STATUS ERROR: $error',
-      );
+      debugPrint('UPDATE DRIVER DELIVERY STATUS ERROR: $error');
 
       if (!mounted) {
         return;
       }
 
-      _showSnackBar(
-        'Status pengiriman gagal diperbarui.',
-        Colors.red.shade400,
-      );
+      _showSnackBar('Status pengiriman gagal diperbarui.', Colors.red.shade400);
     } finally {
       if (mounted) {
         setState(() {
@@ -1570,10 +1175,7 @@ class _DriverDashboardPageState
     }
   }
 
-  void _showSnackBar(
-    String message,
-    Color color,
-  ) {
+  void _showSnackBar(String message, Color color) {
     if (!mounted) {
       return;
     }
@@ -1592,27 +1194,22 @@ class _DriverDashboardPageState
           backgroundColor: color,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(13),
           ),
-          duration:
-              const Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
   }
 
   String _formatPrice(int price) {
     return price.toString().replaceAllMapped(
-      RegExp(
-        r'(\d{1,3})(?=(\d{3})+(?!\d))',
-      ),
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (match) => '${match[1]}.',
     );
   }
 
   String _formatDateTime(DateTime value) {
-    return DateFormat('dd/MM/yyyy HH:mm')
-        .format(value.toLocal());
+    return DateFormat('dd/MM/yyyy HH:mm').format(value.toLocal());
   }
 
   String _statusLabel(String status) {
@@ -1718,33 +1315,25 @@ class _DriverDashboardPageState
       case 'cod':
         return 'COD';
       default:
-        return method == null ||
-                method.trim().isEmpty
-            ? '-'
-            : method;
+        return method == null || method.trim().isEmpty ? '-' : method;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider =
-        Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
     final theme = Theme.of(context);
-    final width =
-        MediaQuery.of(context).size.width;
+    final width = MediaQuery.of(context).size.width;
     final horizontalPadding = width * 0.04;
     final isTablet = width > 600;
 
     SystemChrome.setSystemUIOverlayStyle(
-      isDark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
+      isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
     );
 
     return Scaffold(
-      backgroundColor:
-          theme.scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -1753,29 +1342,21 @@ class _DriverDashboardPageState
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDark
-                ? const [
-                    Color(0xFF13102A),
-                    Color(0xFF0D0D12),
-                  ]
-                : const [
-                    Color(0xFFF5F5FA),
-                    Color(0xFFE8E8F0),
-                  ],
+                ? const [Color(0xFF13102A), Color(0xFF0D0D12)]
+                : const [Color(0xFFF5F5FA), Color(0xFFE8E8F0)],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               _buildHeader(
-                horizontalPadding:
-                    horizontalPadding,
+                horizontalPadding: horizontalPadding,
                 isDark: isDark,
                 isTablet: isTablet,
               ),
               Expanded(
                 child: _buildBody(
-                  horizontalPadding:
-                      horizontalPadding,
+                  horizontalPadding: horizontalPadding,
                   isDark: isDark,
                   isTablet: isTablet,
                 ),
@@ -1802,22 +1383,17 @@ class _DriverDashboardPageState
         14,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF13102A)
-            : Colors.white,
+        color: isDark ? const Color(0xFF13102A) : Colors.white,
         border: Border(
           bottom: BorderSide(
-            color: isDark
-                ? const Color(0xFF1E1E35)
-                : const Color(0xFFE5E7EB),
+            color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
           ),
         ),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color:
-                      Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -1827,16 +1403,12 @@ class _DriverDashboardPageState
         children: [
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Dashboard Driver',
                   style: GoogleFonts.poppins(
-                    color: theme
-                        .textTheme
-                        .titleLarge
-                        ?.color,
+                    color: theme.textTheme.titleLarge?.color,
                     fontSize: isTablet ? 25 : 19,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1844,10 +1416,7 @@ class _DriverDashboardPageState
                 Text(
                   _driver?.name ?? 'Driver Kanzza',
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .bodySmall
-                        ?.color,
+                    color: theme.textTheme.bodySmall?.color,
                     fontSize: 10,
                   ),
                 ),
@@ -1858,64 +1427,46 @@ class _DriverDashboardPageState
           const SizedBox(width: 8),
           IconButton(
             tooltip: 'Muat ulang',
-            onPressed:
-                _isLoading || _isRefreshing
-                ? null
-                : _refresh,
+            onPressed: _isLoading || _isRefreshing ? null : _refresh,
             style: IconButton.styleFrom(
-              backgroundColor:
-                  const Color(0xFF9B5EFF)
-                      .withOpacity(0.12),
-              foregroundColor:
-                  const Color(0xFF9B5EFF),
+              backgroundColor: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
+              foregroundColor: const Color(0xFF9B5EFF),
               shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             icon: _isRefreshing
                 ? const SizedBox(
                     width: 19,
                     height: 19,
-                    child:
-                        CircularProgressIndicator(
+                    child: CircularProgressIndicator(
                       color: Color(0xFF9B5EFF),
                       strokeWidth: 2,
                     ),
                   )
-                : const Icon(
-                    Icons.refresh_rounded,
-                  ),
+                : const Icon(Icons.refresh_rounded),
           ),
           const SizedBox(width: 8),
           IconButton(
             tooltip: 'Logout',
-            onPressed: _isLoggingOut
-                ? null
-                : _showLogoutConfirmation,
+            onPressed: _isLoggingOut ? null : _showLogoutConfirmation,
             style: IconButton.styleFrom(
-              backgroundColor:
-                  Colors.red.withOpacity(0.10),
-              foregroundColor:
-                  Colors.red.shade400,
+              backgroundColor: Colors.red.withValues(alpha: 0.10),
+              foregroundColor: Colors.red.shade400,
               shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             icon: _isLoggingOut
                 ? const SizedBox(
                     width: 19,
                     height: 19,
-                    child:
-                        CircularProgressIndicator(
+                    child: CircularProgressIndicator(
                       color: Colors.red,
                       strokeWidth: 2,
                     ),
                   )
-                : const Icon(
-                    Icons.logout_rounded,
-                  ),
+                : const Icon(Icons.logout_rounded),
           ),
         ],
       ),
@@ -1929,14 +1480,11 @@ class _DriverDashboardPageState
   }) {
     if (_isLoading && _deliveries.isEmpty) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF9B5EFF),
-        ),
+        child: CircularProgressIndicator(color: Color(0xFF9B5EFF)),
       );
     }
 
-    if (_errorMessage != null &&
-        _deliveries.isEmpty) {
+    if (_errorMessage != null && _deliveries.isEmpty) {
       return _buildErrorState();
     }
 
@@ -1944,8 +1492,7 @@ class _DriverDashboardPageState
       onRefresh: _refresh,
       color: const Color(0xFF9B5EFF),
       child: ListView(
-        physics:
-            const AlwaysScrollableScrollPhysics(
+        physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
         padding: EdgeInsets.fromLTRB(
@@ -1957,10 +1504,7 @@ class _DriverDashboardPageState
         children: [
           _buildWelcomeCard(isTablet),
           const SizedBox(height: 16),
-          _buildStatsGrid(
-            isDark: isDark,
-            isTablet: isTablet,
-          ),
+          _buildStatsGrid(isDark: isDark, isTablet: isTablet),
           const SizedBox(height: 18),
           _buildFilterChips(isDark),
           if (_errorMessage != null) ...[
@@ -1974,10 +1518,7 @@ class _DriverDashboardPageState
                 child: Text(
                   '${_filteredDeliveries.length} pengiriman ditemukan',
                   style: GoogleFonts.inter(
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.color,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                     fontSize: 10,
                   ),
                 ),
@@ -1985,8 +1526,7 @@ class _DriverDashboardPageState
               Text(
                 _filterLabel(_selectedFilter),
                 style: GoogleFonts.inter(
-                  color:
-                      const Color(0xFF9B5EFF),
+                  color: const Color(0xFF9B5EFF),
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                 ),
@@ -2002,25 +1542,17 @@ class _DriverDashboardPageState
 
   Widget _buildWelcomeCard(bool isTablet) {
     return Container(
-      padding: EdgeInsets.all(
-        isTablet ? 22 : 16,
-      ),
+      padding: EdgeInsets.all(isTablet ? 22 : 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF9B5EFF),
-            Color(0xFF6C3BD8),
-          ],
+          colors: [Color(0xFF9B5EFF), Color(0xFF6C3BD8)],
         ),
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color:
-                const Color(0xFF9B5EFF)
-                    .withOpacity(0.28),
+            color: const Color(0xFF9B5EFF).withValues(alpha: 0.28),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -2030,16 +1562,14 @@ class _DriverDashboardPageState
         children: [
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Selamat Bekerja, '
                   '${_driver?.name ?? 'Driver'}!',
                   style: GoogleFonts.poppins(
                     color: Colors.white,
-                    fontSize:
-                        isTablet ? 21 : 16,
+                    fontSize: isTablet ? 21 : 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -2048,10 +1578,8 @@ class _DriverDashboardPageState
                   '$_activeCount pengiriman aktif • '
                   '$_todayAssignedCount tugas ditugaskan hari ini',
                   style: GoogleFonts.inter(
-                    color:
-                        Colors.white.withOpacity(0.88),
-                    fontSize:
-                        isTablet ? 14 : 11,
+                    color: Colors.white.withValues(alpha: 0.88),
+                    fontSize: isTablet ? 14 : 11,
                   ),
                 ),
               ],
@@ -2061,10 +1589,8 @@ class _DriverDashboardPageState
             width: isTablet ? 58 : 46,
             height: isTablet ? 58 : 46,
             decoration: BoxDecoration(
-              color:
-                  Colors.white.withOpacity(0.18),
-              borderRadius:
-                  BorderRadius.circular(13),
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(
               Icons.delivery_dining_rounded,
@@ -2077,16 +1603,12 @@ class _DriverDashboardPageState
     );
   }
 
-  Widget _buildStatsGrid({
-    required bool isDark,
-    required bool isTablet,
-  }) {
+  Widget _buildStatsGrid({required bool isDark, required bool isTablet}) {
     final stats = [
       _DriverStat(
         title: 'Ditugaskan',
         value: _assignedCount.toString(),
-        icon:
-            Icons.assignment_ind_outlined,
+        icon: Icons.assignment_ind_outlined,
         color: const Color(0xFFFF9800),
       ),
       _DriverStat(
@@ -2098,15 +1620,13 @@ class _DriverDashboardPageState
       _DriverStat(
         title: 'Sedang Dikirim',
         value: _onDeliveryCount.toString(),
-        icon:
-            Icons.local_shipping_outlined,
+        icon: Icons.local_shipping_outlined,
         color: const Color(0xFF3F51B5),
       ),
       _DriverStat(
         title: 'Selesai',
         value: _deliveredCount.toString(),
-        icon:
-            Icons.check_circle_outline_rounded,
+        icon: Icons.check_circle_outline_rounded,
         color: const Color(0xFF4CAF50),
       ),
     ];
@@ -2115,15 +1635,12 @@ class _DriverDashboardPageState
 
     return GridView.builder(
       shrinkWrap: true,
-      physics:
-          const NeverScrollableScrollPhysics(),
-      gridDelegate:
-          SliverGridDelegateWithFixedCrossAxisCount(
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: isTablet ? 4 : 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio:
-            isTablet ? 1.45 : 1.35,
+        childAspectRatio: isTablet ? 1.45 : 1.35,
       ),
       itemCount: stats.length,
       itemBuilder: (context, index) {
@@ -2133,66 +1650,47 @@ class _DriverDashboardPageState
           padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
             color: theme.cardColor,
-            borderRadius:
-                BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDark
-                  ? const Color(0xFF1E1E35)
-                  : const Color(0xFFE5E7EB),
+              color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
             ),
             boxShadow: isDark
                 ? null
                 : [
                     BoxShadow(
-                      color: Colors.black
-                          .withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 9,
                       offset: const Offset(0, 3),
                     ),
                   ],
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color:
-                      stat.color.withOpacity(0.11),
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  color: stat.color.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  stat.icon,
-                  color: stat.color,
-                  size: 20,
-                ),
+                child: Icon(stat.icon, color: stat.color, size: 20),
               ),
               const SizedBox(height: 8),
               Text(
                 stat.title,
                 maxLines: 1,
-                overflow:
-                    TextOverflow.ellipsis,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
-                  color: theme
-                      .textTheme
-                      .bodySmall
-                      ?.color,
+                  color: theme.textTheme.bodySmall?.color,
                   fontSize: 10,
                 ),
               ),
               Text(
                 stat.value,
                 style: GoogleFonts.poppins(
-                  color: theme
-                      .textTheme
-                      .titleLarge
-                      ?.color,
+                  color: theme.textTheme.titleLarge?.color,
                   fontSize: 21,
                   fontWeight: FontWeight.w800,
                 ),
@@ -2211,22 +1709,18 @@ class _DriverDashboardPageState
       height: 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        physics:
-            const BouncingScrollPhysics(),
+        physics: const BouncingScrollPhysics(),
         itemCount: _filters.length,
-        separatorBuilder: (_, __) =>
-            const SizedBox(width: 7),
+        separatorBuilder: (_, _) => const SizedBox(width: 7),
         itemBuilder: (context, index) {
           final filter = _filters[index];
-          final selected =
-              _selectedFilter == filter.value;
+          final selected = _selectedFilter == filter.value;
 
           return ChoiceChip(
             selected: selected,
             onSelected: (_) {
               setState(() {
-                _selectedFilter =
-                    filter.value;
+                _selectedFilter = filter.value;
               });
             },
             label: Text(
@@ -2234,31 +1728,22 @@ class _DriverDashboardPageState
               style: GoogleFonts.inter(
                 color: selected
                     ? Colors.white
-                    : theme
-                        .textTheme
-                        .bodyMedium
-                        ?.color,
+                    : theme.textTheme.bodyMedium?.color,
                 fontSize: 10,
-                fontWeight: selected
-                    ? FontWeight.w700
-                    : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
-            selectedColor:
-                const Color(0xFF9B5EFF),
-            backgroundColor: isDark
-                ? const Color(0xFF16162A)
-                : Colors.white,
+            selectedColor: const Color(0xFF9B5EFF),
+            backgroundColor: isDark ? const Color(0xFF16162A) : Colors.white,
             side: BorderSide(
               color: selected
                   ? const Color(0xFF9B5EFF)
                   : isDark
-                      ? const Color(0xFF1E1E35)
-                      : const Color(0xFFE5E7EB),
+                  ? const Color(0xFF1E1E35)
+                  : const Color(0xFFE5E7EB),
             ),
             shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(11),
+              borderRadius: BorderRadius.circular(11),
             ),
             showCheckmark: false,
           );
@@ -2276,14 +1761,10 @@ class _DriverDashboardPageState
 
     return ListView.builder(
       shrinkWrap: true,
-      physics:
-          const NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: deliveries.length,
       itemBuilder: (context, index) {
-        return _buildDeliveryCard(
-          delivery: deliveries[index],
-          isDark: isDark,
-        );
+        return _buildDeliveryCard(delivery: deliveries[index], isDark: isDark);
       },
     );
   }
@@ -2294,10 +1775,8 @@ class _DriverDashboardPageState
   }) {
     final theme = Theme.of(context);
     final order = delivery.order;
-    final color =
-        _statusColor(delivery.status);
-    final processing =
-        _processingDeliveryId == delivery.id;
+    final color = _statusColor(delivery.status);
+    final processing = _processingDeliveryId == delivery.id;
 
     return Material(
       color: Colors.transparent,
@@ -2307,52 +1786,41 @@ class _DriverDashboardPageState
             : () {
                 _openDeliveryDetail(delivery);
               },
-        borderRadius:
-            BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(15),
         child: Container(
           margin: const EdgeInsets.only(bottom: 11),
           padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
             color: theme.cardColor,
-            borderRadius:
-                BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(15),
             border: Border.all(
-              color: isDark
-                  ? const Color(0xFF1E1E35)
-                  : const Color(0xFFE5E7EB),
+              color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
             ),
             boxShadow: isDark
                 ? null
                 : [
                     BoxShadow(
-                      color: Colors.black
-                          .withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 9,
                       offset: const Offset(0, 3),
                     ),
                   ],
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color:
-                          color.withOpacity(0.11),
-                      borderRadius:
-                          BorderRadius.circular(11),
+                      color: color.withValues(alpha: 0.11),
+                      borderRadius: BorderRadius.circular(11),
                     ),
                     child: Icon(
-                      _statusIcon(
-                        delivery.status,
-                      ),
+                      _statusIcon(delivery.status),
                       color: color,
                       size: 21,
                     ),
@@ -2360,39 +1828,27 @@ class _DriverDashboardPageState
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           delivery.orderNumber,
                           maxLines: 1,
-                          overflow:
-                              TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.inter(
-                            color: theme
-                                .textTheme
-                                .titleLarge
-                                ?.color,
+                            color: theme.textTheme.titleLarge?.color,
                             fontSize: 12,
-                            fontWeight:
-                                FontWeight.w700,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          order?.customerName ??
-                              'Customer',
+                          order?.customerName ?? 'Customer',
                           maxLines: 1,
-                          overflow:
-                              TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.inter(
-                            color: theme
-                                .textTheme
-                                .bodyMedium
-                                ?.color,
+                            color: theme.textTheme.bodyMedium?.color,
                             fontSize: 10,
-                            fontWeight:
-                                FontWeight.w600,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -2403,48 +1859,35 @@ class _DriverDashboardPageState
                     const SizedBox(
                       width: 20,
                       height: 20,
-                      child:
-                          CircularProgressIndicator(
-                        color:
-                            Color(0xFF9B5EFF),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF9B5EFF),
                         strokeWidth: 2,
                       ),
                     )
                   else
                     _statusBadge(
-                      label: _statusLabel(
-                        delivery.status,
-                      ),
+                      label: _statusLabel(delivery.status),
                       color: color,
                     ),
                 ],
               ),
               const SizedBox(height: 10),
               Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.location_on_outlined,
-                    color: theme
-                        .textTheme
-                        .bodySmall
-                        ?.color,
+                    color: theme.textTheme.bodySmall?.color,
                     size: 17,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      order?.fullAddress ??
-                          'Alamat tidak tersedia',
+                      order?.fullAddress ?? 'Alamat tidak tersedia',
                       maxLines: 2,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(
-                        color: theme
-                            .textTheme
-                            .bodySmall
-                            ?.color,
+                        color: theme.textTheme.bodySmall?.color,
                         fontSize: 10,
                         height: 1.35,
                       ),
@@ -2456,28 +1899,21 @@ class _DriverDashboardPageState
               Row(
                 children: [
                   _smallInfo(
-                    icon:
-                        Icons.inventory_2_outlined,
-                    text:
-                        '${order?.totalQuantity ?? 0} item',
+                    icon: Icons.inventory_2_outlined,
+                    text: '${order?.totalQuantity ?? 0} item',
                     isDark: isDark,
                   ),
                   const SizedBox(width: 7),
                   _smallInfo(
                     icon: Icons.payment_outlined,
-                    text:
-                        _paymentStatusLabel(
-                      order?.paymentStatus ??
-                          '-',
-                    ),
+                    text: _paymentStatusLabel(order?.paymentStatus ?? '-'),
                     isDark: isDark,
                   ),
                   const Spacer(),
                   Text(
                     'Rp ${_formatPrice(order?.grandTotal ?? 0)}',
                     style: GoogleFonts.poppins(
-                      color:
-                          const Color(0xFF9B5EFF),
+                      color: const Color(0xFF9B5EFF),
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                     ),
@@ -2492,13 +1928,9 @@ class _DriverDashboardPageState
                       'Ditugaskan '
                       '${_formatDateTime(delivery.sortDate)}',
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(
-                        color: theme
-                            .textTheme
-                            .bodySmall
-                            ?.color,
+                        color: theme.textTheme.bodySmall?.color,
                         fontSize: 8,
                       ),
                     ),
@@ -2507,8 +1939,7 @@ class _DriverDashboardPageState
                   Text(
                     'Lihat Detail',
                     style: GoogleFonts.inter(
-                      color:
-                          const Color(0xFF9B5EFF),
+                      color: const Color(0xFF9B5EFF),
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
                     ),
@@ -2535,31 +1966,19 @@ class _DriverDashboardPageState
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 7,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1E1E35)
-            : const Color(0xFFF7F7FB),
-        borderRadius:
-            BorderRadius.circular(8),
+        color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color:
-                theme.textTheme.bodySmall?.color,
-            size: 13,
-          ),
+          Icon(icon, color: theme.textTheme.bodySmall?.color, size: 13),
           const SizedBox(width: 4),
           Text(
             text,
             style: GoogleFonts.inter(
-              color:
-                  theme.textTheme.bodySmall?.color,
+              color: theme.textTheme.bodySmall?.color,
               fontSize: 8,
               fontWeight: FontWeight.w600,
             ),
@@ -2569,22 +1988,13 @@ class _DriverDashboardPageState
     );
   }
 
-  Widget _statusBadge({
-    required String label,
-    required Color color,
-  }) {
+  Widget _statusBadge({required String label, required Color color}) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 7,
-        vertical: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
-        borderRadius:
-            BorderRadius.circular(8),
-        border: Border.all(
-          color: color.withOpacity(0.22),
-        ),
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: Text(
         label,
@@ -2612,32 +2022,23 @@ class _DriverDashboardPageState
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color:
-            Colors.orange.withOpacity(0.10),
-        borderRadius:
-            BorderRadius.circular(13),
+        color: Colors.orange.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(13),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: Colors.orange.shade500,
-          ),
+          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade500),
           const SizedBox(width: 9),
           Expanded(
             child: Text(
               _errorMessage!,
               style: GoogleFonts.inter(
-                color:
-                    Colors.orange.shade600,
+                color: Colors.orange.shade600,
                 fontSize: 11,
               ),
             ),
           ),
-          TextButton(
-            onPressed: _refresh,
-            child: const Text('Ulangi'),
-          ),
+          TextButton(onPressed: _refresh, child: const Text('Ulangi')),
         ],
       ),
     );
@@ -2650,53 +2051,37 @@ class _DriverDashboardPageState
       onRefresh: _refresh,
       color: const Color(0xFF9B5EFF),
       child: ListView(
-        physics:
-            const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
           SizedBox(
-            height: MediaQuery.of(context)
-                    .size
-                    .height *
-                0.72,
+            height: MediaQuery.of(context).size.height * 0.72,
             child: Center(
               child: Padding(
-                padding:
-                    const EdgeInsets.all(28),
+                padding: const EdgeInsets.all(28),
                 child: Column(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.cloud_off_rounded,
-                      color:
-                          Colors.red.shade300,
+                      color: Colors.red.shade300,
                       size: 64,
                     ),
                     const SizedBox(height: 17),
                     Text(
                       'Pengiriman gagal dimuat',
-                      style:
-                          GoogleFonts.poppins(
-                        color: theme
-                            .textTheme
-                            .titleLarge
-                            ?.color,
+                      style: GoogleFonts.poppins(
+                        color: theme.textTheme.titleLarge?.color,
                         fontSize: 18,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _errorMessage ??
                           'Terjadi kesalahan saat mengambil pengiriman.',
-                      textAlign:
-                          TextAlign.center,
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
-                        color: theme
-                            .textTheme
-                            .bodySmall
-                            ?.color,
+                        color: theme.textTheme.bodySmall?.color,
                         fontSize: 12,
                         height: 1.5,
                       ),
@@ -2706,20 +2091,11 @@ class _DriverDashboardPageState
                       onPressed: () {
                         _loadDashboard();
                       },
-                      icon: const Icon(
-                        Icons.refresh_rounded,
-                      ),
-                      label: const Text(
-                        'Coba Lagi',
-                      ),
-                      style:
-                          ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color(
-                          0xFF9B5EFF,
-                        ),
-                        foregroundColor:
-                            Colors.white,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Coba Lagi'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF9B5EFF),
+                        foregroundColor: Colors.white,
                       ),
                     ),
                   ],
@@ -2737,17 +2113,12 @@ class _DriverDashboardPageState
 
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
-        vertical: 46,
-        horizontal: 24,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 46, horizontal: 24),
       child: Column(
         children: [
           Icon(
             Icons.inbox_outlined,
-            color:
-                theme.textTheme.bodySmall?.color,
+            color: theme.textTheme.bodySmall?.color,
             size: 62,
           ),
           const SizedBox(height: 15),
@@ -2756,8 +2127,7 @@ class _DriverDashboardPageState
                 ? 'Belum Ada Pengiriman'
                 : 'Pengiriman Tidak Ditemukan',
             style: GoogleFonts.poppins(
-              color:
-                  theme.textTheme.titleLarge?.color,
+              color: theme.textTheme.titleLarge?.color,
               fontSize: 17,
               fontWeight: FontWeight.w700,
             ),
@@ -2769,8 +2139,7 @@ class _DriverDashboardPageState
                 : 'Coba pilih filter status yang lain.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              color:
-                  theme.textTheme.bodySmall?.color,
+              color: theme.textTheme.bodySmall?.color,
               fontSize: 12,
               height: 1.5,
             ),
@@ -2783,12 +2152,8 @@ class _DriverDashboardPageState
                   _selectedFilter = 'all';
                 });
               },
-              icon: const Icon(
-                Icons.restart_alt_rounded,
-              ),
-              label: const Text(
-                'Reset Filter',
-              ),
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: const Text('Reset Filter'),
             ),
           ],
         ],
@@ -2801,10 +2166,7 @@ class _DriverFilter {
   final String value;
   final String label;
 
-  const _DriverFilter({
-    required this.value,
-    required this.label,
-  });
+  const _DriverFilter({required this.value, required this.label});
 }
 
 class _DriverStat {
@@ -2825,8 +2187,5 @@ class _StatusUpdateResult {
   final String notes;
   final bool? paymentReceived;
 
-  const _StatusUpdateResult({
-    required this.notes,
-    this.paymentReceived,
-  });
+  const _StatusUpdateResult({required this.notes, this.paymentReceived});
 }

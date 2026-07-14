@@ -26,7 +26,7 @@ class ThemeToggleButton extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -51,9 +51,9 @@ class ThemeToggleButton extends StatelessWidget {
           ),
         ],
       ),
-      backgroundColor: isDark 
-          ? Colors.grey.shade900.withOpacity(0.95) 
-          : const Color(0xFF7C3AED).withOpacity(0.95),
+      backgroundColor: isDark
+          ? Colors.grey.shade900.withValues(alpha: 0.95)
+          : const Color(0xFF7C3AED).withValues(alpha: 0.95),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -90,7 +90,7 @@ class ThemeToggleButton extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           color: isDark
-              ? const Color(0xFF1E1E35).withOpacity(0.5)
+              ? const Color(0xFF1E1E35).withValues(alpha: 0.5)
               : const Color(0xFFF5F5FA),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -100,9 +100,9 @@ class ThemeToggleButton extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: isDark 
-                  ? Colors.black.withOpacity(0.2) 
-                  : Colors.black.withOpacity(0.05),
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

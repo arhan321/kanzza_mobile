@@ -10,13 +10,11 @@ class CartActionResult {
 
   const CartActionResult({required this.success, required this.message});
 
-  const CartActionResult.success(String message)
-    : success = true,
-      message = message;
+  const CartActionResult.success(this.message)
+    : success = true;
 
-  const CartActionResult.failure(String message)
-    : success = false,
-      message = message;
+  const CartActionResult.failure(this.message)
+    : success = false;
 }
 
 class CustomerCartProvider extends ChangeNotifier {

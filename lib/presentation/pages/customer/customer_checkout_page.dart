@@ -7,10 +7,12 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/widgets/delivery_route_preview.dart';
 import '../../../core/widgets/location_picker_card.dart';
 import '../../../core/location/location_service.dart';
+import '../../../core/location/road_route_service.dart';
 import '../../../core/location/store_location.dart';
 import '../../../data/models/address.dart';
 import '../../../data/models/cart_item.dart';
@@ -53,7 +55,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
   UserModel? _currentUser;
   int? _selectedAddressId;
   String _deliveryMethod = 'delivery';
-  String _paymentMethod = 'cash';
+  String _paymentMethod = 'midtrans';
   bool _showDeliveryRoute = false;
   int _routeCheckRevision = 0;
   bool _isCheckingLocation = false;
@@ -135,24 +137,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
 
   int get _checkoutTotal => _cartSubtotal + _shippingCost;
 
-  double? get _effectiveDistanceKm =>
-      _routeDistanceKm ?? _savedDistanceEstimate(_selectedAddress);
-
-  double? _savedDistanceEstimate(AddressModel? address) {
-    final latitude = address?.latitude;
-    final longitude = address?.longitude;
-
-    if (latitude == null || longitude == null) {
-      return null;
-    }
-
-    return LocationService.distanceInKilometers(
-      startLatitude: StoreLocation.latitude,
-      startLongitude: StoreLocation.longitude,
-      endLatitude: latitude,
-      endLongitude: longitude,
-    );
-  }
+  double? get _effectiveDistanceKm => _routeDistanceKm;
 
   AddressModel? get _selectedAddress {
     if (_selectedAddressId == null) {
@@ -210,16 +195,6 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
         }
       }
 
-      AddressModel? nextSelectedAddress;
-      if (nextAddressId != null) {
-        for (final address in addresses) {
-          if (address.id == nextAddressId) {
-            nextSelectedAddress = address;
-            break;
-          }
-        }
-      }
-
       setState(() {
         _currentUser = user;
         _addresses
@@ -228,7 +203,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
         _selectedAddressId = nextAddressId;
         _showDeliveryRoute = false;
         _checkedLocationAccuracy = null;
-        _routeDistanceKm = _savedDistanceEstimate(nextSelectedAddress);
+        _routeDistanceKm = null;
         _isLoading = false;
         _isRefreshing = false;
         _errorMessage = null;
@@ -295,7 +270,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
 
     try {
       final detectedLocation = await const LocationService()
-          .detectCurrentLocation();
+          .detectFreshCurrentLocation();
 
       final updatedAddress = await _addressRepository.updateAddress(
         addressId: address.id,
@@ -479,6 +454,10 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
       return;
     }
 
+    if (_deliveryMethod == 'delivery' && !await _ensureRoadRoute()) {
+      return;
+    }
+
     final confirmed = await _showOrderConfirmation();
 
     if (confirmed != true || !mounted) {
@@ -486,6 +465,50 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     }
 
     await _createOrderAndPayment();
+  }
+
+  Future<bool> _ensureRoadRoute() async {
+    if (_routeDistanceKm != null) return true;
+
+    final address = _selectedAddress;
+    final latitude = address?.latitude;
+    final longitude = address?.longitude;
+
+    if (latitude == null || longitude == null) {
+      _showSnackBar(
+        'Alamat belum memiliki koordinat GPS. Perbarui lokasi alamat dahulu.',
+        Colors.orange.shade600,
+      );
+      return false;
+    }
+
+    setState(() => _isSubmitting = true);
+    final routeService = RoadRouteService();
+
+    try {
+      final route = await routeService.getDrivingRoute(
+        startLatitude: StoreLocation.latitude,
+        startLongitude: StoreLocation.longitude,
+        endLatitude: latitude,
+        endLongitude: longitude,
+      );
+
+      if (!mounted) return false;
+      setState(() {
+        _routeDistanceKm = route.distanceKm;
+        _showDeliveryRoute = true;
+        _routeCheckRevision++;
+      });
+      return true;
+    } on RoadRouteException catch (error) {
+      if (mounted) {
+        _showSnackBar(error.message, Colors.orange.shade600);
+      }
+      return false;
+    } finally {
+      routeService.close();
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   Future<bool?> _showOrderConfirmation() {
@@ -555,7 +578,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(11),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF9B5EFF).withOpacity(0.09),
+                    color: const Color(0xFF9B5EFF).withValues(alpha: 0.09),
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: Text(
@@ -885,7 +908,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                 width: 74,
                 height: 74,
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+                  color: statusColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -936,7 +959,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.08),
+                  color: statusColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -1323,7 +1346,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF4CD466).withOpacity(0.32),
+                      color: const Color(0xFF4CD466).withValues(alpha: 0.32),
                       blurRadius: 16,
                       offset: const Offset(0, 7),
                     ),
@@ -1395,27 +1418,31 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     return _sectionCard(
       isDark: isDark,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      child: Column(
-        children: [
-          _deliveryOption(
-            value: 'delivery',
-            title: 'Di Antar ke Alamat',
-            subtitle: 'Pesanan akan diantar ke lokasi Anda',
-            icon: Icons.delivery_dining_rounded,
-            isDark: isDark,
-          ),
-          Divider(
-            height: 20,
-            color: isDark ? const Color(0xFF28243F) : const Color(0xFFE6E6ED),
-          ),
-          _deliveryOption(
-            value: 'pickup',
-            title: 'Ambil di Toko',
-            subtitle: 'Ambil pesanan langsung di toko kami',
-            icon: Icons.storefront_rounded,
-            isDark: isDark,
-          ),
-        ],
+      child: RadioGroup<String>(
+        groupValue: _deliveryMethod,
+        onChanged: _selectDeliveryMethod,
+        child: Column(
+          children: [
+            _deliveryOption(
+              value: 'delivery',
+              title: 'Di Antar ke Alamat',
+              subtitle: 'Pesanan akan diantar ke lokasi Anda',
+              icon: Icons.delivery_dining_rounded,
+              isDark: isDark,
+            ),
+            Divider(
+              height: 20,
+              color: isDark ? const Color(0xFF28243F) : const Color(0xFFE6E6ED),
+            ),
+            _deliveryOption(
+              value: 'pickup',
+              title: 'Ambil di Toko',
+              subtitle: 'Ambil pesanan langsung di toko kami',
+              icon: Icons.storefront_rounded,
+              isDark: isDark,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1433,18 +1460,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _isSubmitting
-            ? null
-            : () {
-                setState(() {
-                  _deliveryMethod = value;
-                  _showDeliveryRoute = false;
-                  _checkedLocationAccuracy = null;
-                  _routeDistanceKm = value == 'delivery'
-                      ? _savedDistanceEstimate(_selectedAddress)
-                      : 0;
-                });
-              },
+        onTap: _isSubmitting ? null : () => _selectDeliveryMethod(value),
         borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 5),
@@ -1452,23 +1468,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             children: [
               Radio<String>(
                 value: value,
-                groupValue: _deliveryMethod,
-                onChanged: _isSubmitting
-                    ? null
-                    : (nextValue) {
-                        if (nextValue == null) {
-                          return;
-                        }
-
-                        setState(() {
-                          _deliveryMethod = nextValue;
-                          _showDeliveryRoute = false;
-                          _checkedLocationAccuracy = null;
-                          _routeDistanceKm = nextValue == 'delivery'
-                              ? _savedDistanceEstimate(_selectedAddress)
-                              : 0;
-                        });
-                      },
+                enabled: !_isSubmitting,
                 activeColor: const Color(0xFF9255F5),
               ),
               Container(
@@ -1514,100 +1514,117 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     );
   }
 
+  void _selectDeliveryMethod(String? value) {
+    if (value == null || _isSubmitting) {
+      return;
+    }
+
+    setState(() {
+      _deliveryMethod = value;
+      _showDeliveryRoute = false;
+      _checkedLocationAccuracy = null;
+      _routeDistanceKm = value == 'delivery' ? null : 0;
+    });
+  }
+
   Widget _buildAddressSection(bool isDark) {
     return _sectionCard(
       isDark: isDark,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _sectionTitle(
-                  icon: Icons.location_on_outlined,
-                  title: 'Alamat Pengiriman',
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _isSubmitting ? null : _showAddAddressSheet,
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Tambah'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (_addresses.isEmpty)
-            _buildEmptyAddress(isDark)
-          else ...[
-            ..._addresses.map(
-              (address) =>
-                  _buildAddressOption(address: address, isDark: isDark),
-            ),
-            if (_selectedAddress != null) ...[
-              const SizedBox(height: 7),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isSubmitting || _isCheckingLocation
-                      ? null
-                      : _checkCurrentDeviceLocation,
-                  icon: _isCheckingLocation
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.gps_fixed_rounded),
-                  label: Text(
-                    _isCheckingLocation
-                        ? 'Mengambil GPS Akurat...'
-                        : _showDeliveryRoute
-                        ? 'Cek Ulang Lokasi & Rute'
-                        : 'Cek Lokasi & Tampilkan Rute',
+      child: RadioGroup<int>(
+        groupValue: _selectedAddressId,
+        onChanged: _selectAddress,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _sectionTitle(
+                    icon: Icons.location_on_outlined,
+                    title: 'Alamat Pengiriman',
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF9255F5),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                ),
+                TextButton.icon(
+                  onPressed: _isSubmitting ? null : _showAddAddressSheet,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Tambah'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (_addresses.isEmpty)
+              _buildEmptyAddress(isDark)
+            else ...[
+              ..._addresses.map(
+                (address) =>
+                    _buildAddressOption(address: address, isDark: isDark),
+              ),
+              if (_selectedAddress != null) ...[
+                const SizedBox(height: 7),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSubmitting || _isCheckingLocation
+                        ? null
+                        : _checkCurrentDeviceLocation,
+                    icon: _isCheckingLocation
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.gps_fixed_rounded),
+                    label: Text(
+                      _isCheckingLocation
+                          ? 'Mengambil GPS Akurat...'
+                          : _showDeliveryRoute
+                          ? 'Cek Ulang Lokasi & Rute'
+                          : 'Cek Lokasi & Tampilkan Rute',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF9255F5),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              if (_checkedLocationAccuracy != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Lokasi diambil langsung dari GPS perangkat • '
-                  'akurasi ±${_checkedLocationAccuracy!.round()} meter',
-                  style: GoogleFonts.inter(
-                    color: Colors.green.shade600,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
+                if (_checkedLocationAccuracy != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Lokasi diambil langsung dari GPS perangkat • '
+                    'akurasi ±${_checkedLocationAccuracy!.round()} meter',
+                    style: GoogleFonts.inter(
+                      color: Colors.green.shade600,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
+                ],
               ],
+              if (_showDeliveryRoute &&
+                  _selectedAddress?.latitude != null &&
+                  _selectedAddress?.longitude != null)
+                DeliveryRoutePreview(
+                  key: ValueKey(_routeCheckRevision),
+                  customerLatitude: _selectedAddress!.latitude!,
+                  customerLongitude: _selectedAddress!.longitude!,
+                  onDistanceChanged: (distanceKm) {
+                    if (mounted) {
+                      setState(() {
+                        _routeDistanceKm = distanceKm;
+                      });
+                    }
+                  },
+                ),
             ],
-            if (_showDeliveryRoute &&
-                _selectedAddress?.latitude != null &&
-                _selectedAddress?.longitude != null)
-              DeliveryRoutePreview(
-                key: ValueKey(_routeCheckRevision),
-                customerLatitude: _selectedAddress!.latitude!,
-                customerLongitude: _selectedAddress!.longitude!,
-                onDistanceChanged: (distanceKm) {
-                  if (mounted) {
-                    setState(() {
-                      _routeDistanceKm = distanceKm;
-                    });
-                  }
-                },
-              ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1677,22 +1694,13 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: _isSubmitting
-              ? null
-              : () {
-                  setState(() {
-                    _selectedAddressId = address.id;
-                    _showDeliveryRoute = false;
-                    _checkedLocationAccuracy = null;
-                    _routeDistanceKm = _savedDistanceEstimate(address);
-                  });
-                },
+          onTap: _isSubmitting ? null : () => _selectAddress(address.id),
           borderRadius: BorderRadius.circular(13),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: selected
-                  ? const Color(0xFF9B5EFF).withOpacity(0.10)
+                  ? const Color(0xFF9B5EFF).withValues(alpha: 0.10)
                   : isDark
                   ? const Color(0xFF0D0D12)
                   : const Color(0xFFF7F7FB),
@@ -1711,19 +1719,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
               children: [
                 Radio<int>(
                   value: address.id,
-                  groupValue: _selectedAddressId,
-                  onChanged: _isSubmitting
-                      ? null
-                      : (value) {
-                          setState(() {
-                            _selectedAddressId = value;
-                            _showDeliveryRoute = false;
-                            _checkedLocationAccuracy = null;
-                            _routeDistanceKm = _savedDistanceEstimate(
-                              value == address.id ? address : null,
-                            );
-                          });
-                        },
+                  enabled: !_isSubmitting,
                   activeColor: const Color(0xFF9B5EFF),
                 ),
                 Expanded(
@@ -1796,6 +1792,19 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     );
   }
 
+  void _selectAddress(int? value) {
+    if (value == null || _isSubmitting) {
+      return;
+    }
+
+    setState(() {
+      _selectedAddressId = value;
+      _showDeliveryRoute = false;
+      _checkedLocationAccuracy = null;
+      _routeDistanceKm = null;
+    });
+  }
+
   Widget _buildPickupCard(bool isDark) {
     final theme = Theme.of(context);
 
@@ -1808,7 +1817,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFF9B5EFF).withOpacity(0.12),
+              color: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(13),
             ),
             child: const Icon(
@@ -1856,27 +1865,34 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     return _sectionCard(
       isDark: isDark,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      child: Column(
-        children: [
-          _paymentOption(
-            value: 'cash',
-            title: 'Bayar di Tempat (COD)',
-            subtitle: 'Bayar tunai saat pesanan sampai',
-            icon: Icons.payments_outlined,
-            isDark: isDark,
-          ),
-          Divider(
-            height: 20,
-            color: isDark ? const Color(0xFF28243F) : const Color(0xFFE6E6ED),
-          ),
-          _paymentOption(
-            value: 'midtrans',
-            title: 'Pembayaran Online (Midtrans)',
-            subtitle: 'Transfer bank, QRIS, e-wallet, dan metode lainnya',
-            icon: Icons.account_balance_wallet_rounded,
-            isDark: isDark,
-          ),
-        ],
+      child: RadioGroup<String>(
+        groupValue: _paymentMethod,
+        onChanged: _selectPaymentMethod,
+        child: Column(
+          children: [
+            _paymentOption(
+              value: 'cash',
+              title: 'Bayar di Tempat (COD)',
+              subtitle: AppConfig.customerCodEnabled
+                  ? 'Bayar tunai saat pesanan sampai'
+                  : 'Belum didukung oleh server saat ini',
+              icon: Icons.payments_outlined,
+              isDark: isDark,
+              enabled: AppConfig.customerCodEnabled,
+            ),
+            Divider(
+              height: 20,
+              color: isDark ? const Color(0xFF28243F) : const Color(0xFFE6E6ED),
+            ),
+            _paymentOption(
+              value: 'midtrans',
+              title: 'Pembayaran Online (Midtrans)',
+              subtitle: 'Transfer bank, QRIS, e-wallet, dan metode lainnya',
+              icon: Icons.account_balance_wallet_rounded,
+              isDark: isDark,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1887,25 +1903,19 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     required String subtitle,
     required IconData icon,
     required bool isDark,
+    bool enabled = true,
   }) {
     final theme = Theme.of(context);
     return InkWell(
-      onTap: _isSubmitting
+      onTap: _isSubmitting || !enabled
           ? null
-          : () => setState(() => _paymentMethod = value),
+          : () => _selectPaymentMethod(value),
       borderRadius: BorderRadius.circular(14),
       child: Row(
         children: [
           Radio<String>(
             value: value,
-            groupValue: _paymentMethod,
-            onChanged: _isSubmitting
-                ? null
-                : (nextValue) {
-                    if (nextValue != null) {
-                      setState(() => _paymentMethod = nextValue);
-                    }
-                  },
+            enabled: !_isSubmitting && enabled,
             activeColor: const Color(0xFF9255F5),
           ),
           Container(
@@ -1944,6 +1954,16 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
         ],
       ),
     );
+  }
+
+  void _selectPaymentMethod(String? value) {
+    if (value == null ||
+        _isSubmitting ||
+        (value == 'cash' && !AppConfig.customerCodEnabled)) {
+      return;
+    }
+
+    setState(() => _paymentMethod = value);
   }
 
   Widget _buildNotesCard(bool isDark) {
@@ -2050,10 +2070,10 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(11),
             decoration: BoxDecoration(
-              color: const Color(0xFF9255F5).withOpacity(0.08),
+              color: const Color(0xFF9255F5).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: const Color(0xFF9255F5).withOpacity(0.18),
+                color: const Color(0xFF9255F5).withValues(alpha: 0.18),
               ),
             ),
             child: Text(
@@ -2155,12 +2175,14 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF4CD466).withOpacity(0.35)),
+        border: Border.all(
+          color: const Color(0xFF4CD466).withValues(alpha: 0.35),
+        ),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -2172,7 +2194,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: const Color(0xFF4CD466).withOpacity(0.14),
+              color: const Color(0xFF4CD466).withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(15),
             ),
             child: const Icon(
@@ -2215,7 +2237,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
               backgroundColor: const Color(0xFF4CD466),
               foregroundColor: Colors.white,
               elevation: 5,
-              shadowColor: const Color(0xFF4CD466).withOpacity(0.35),
+              shadowColor: const Color(0xFF4CD466).withValues(alpha: 0.35),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(13),
@@ -2248,7 +2270,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 9,
                   offset: const Offset(0, 3),
                 ),
@@ -2281,9 +2303,9 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: color.withOpacity(0.20)),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
       ),
       child: Text(
         text,
@@ -2579,7 +2601,7 @@ class _AddAddressSheetState extends State<_AddAddressSheet> {
                         SwitchListTile.adaptive(
                           contentPadding: EdgeInsets.zero,
                           value: _isDefault,
-                          activeColor: const Color(0xFF9B5EFF),
+                          activeThumbColor: const Color(0xFF9B5EFF),
                           onChanged: (value) {
                             setState(() {
                               _isDefault = value;

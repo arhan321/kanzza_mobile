@@ -9,11 +9,7 @@ class CartRepository {
   CartRepository({
     FlutterSecureStorage? secureStorage,
     AuthStorage? authStorage,
-  }) : _secureStorage =
-           secureStorage ??
-           const FlutterSecureStorage(
-             aOptions: AndroidOptions(encryptedSharedPreferences: true),
-           ),
+  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
        _authStorage = authStorage ?? AuthStorage.instance;
 
   static const String _storagePrefix = 'kanzza_customer_cart';

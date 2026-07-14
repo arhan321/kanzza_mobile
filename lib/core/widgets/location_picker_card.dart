@@ -153,7 +153,7 @@ class _LocationPickerCardState extends State<LocationPickerCard> {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF9B5EFF).withOpacity(0.12),
+                  color: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(11),
                 ),
                 child: const Icon(
@@ -225,7 +225,7 @@ class _LocationPickerCardState extends State<LocationPickerCard> {
               width: double.infinity,
               padding: const EdgeInsets.all(11),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.10),
+                color: Colors.orange.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(11),
               ),
               child: Column(

@@ -1,13 +1,11 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../location/location_service.dart';
+import '../location/road_route_service.dart';
 import '../location/store_location.dart';
 
 class DeliveryRoutePreview extends StatefulWidget {
@@ -27,10 +25,18 @@ class DeliveryRoutePreview extends StatefulWidget {
 }
 
 class _DeliveryRoutePreviewState extends State<DeliveryRoutePreview> {
+  final RoadRouteService _routeService = RoadRouteService();
   bool _isLoading = true;
   bool _usesRoadRoute = false;
   double? _distanceKm;
   List<LatLng> _routePoints = const [];
+  String? _routeError;
+
+  @override
+  void dispose() {
+    _routeService.close();
+    super.dispose();
+  }
 
   LatLng get _storePoint =>
       const LatLng(StoreLocation.latitude, StoreLocation.longitude);
@@ -57,77 +63,32 @@ class _DeliveryRoutePreviewState extends State<DeliveryRoutePreview> {
   Future<void> _loadRoute() async {
     setState(() {
       _isLoading = true;
+      _routeError = null;
     });
 
     try {
-      final uri = Uri.parse(
-        'https://router.project-osrm.org/route/v1/driving/'
-        '${StoreLocation.longitude},${StoreLocation.latitude};'
-        '${widget.customerLongitude},${widget.customerLatitude}'
-        '?overview=full&geometries=geojson&steps=false&alternatives=false',
+      final route = await _routeService.getDrivingRoute(
+        startLatitude: StoreLocation.latitude,
+        startLongitude: StoreLocation.longitude,
+        endLatitude: widget.customerLatitude,
+        endLongitude: widget.customerLongitude,
       );
-
-      final response = await http
-          .get(
-            uri,
-            headers: const {
-              'Accept': 'application/json',
-              'User-Agent': 'KanzzaSalesApp/1.0',
-            },
-          )
-          .timeout(const Duration(seconds: 15));
-
-      if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode}');
-      }
-
-      final decoded = jsonDecode(response.body);
-      final routes = decoded is Map<String, dynamic> ? decoded['routes'] : null;
-
-      if (routes is! List || routes.isEmpty) {
-        throw Exception('Rute tidak tersedia');
-      }
-
-      final route = routes.first;
-      final geometry = route is Map<String, dynamic> ? route['geometry'] : null;
-      final coordinates = geometry is Map<String, dynamic>
-          ? geometry['coordinates']
-          : null;
-
-      if (coordinates is! List || coordinates.length < 2) {
-        throw Exception('Koordinat rute tidak tersedia');
-      }
-
-      final points = coordinates
-          .whereType<List>()
-          .where((item) => item.length >= 2)
-          .map(
-            (item) => LatLng(
-              (item[1] as num).toDouble(),
-              (item[0] as num).toDouble(),
-            ),
-          )
-          .toList();
-
-      final distanceMeters = route['distance'];
 
       if (!mounted) {
         return;
       }
 
-      final distanceKm = distanceMeters is num
-          ? distanceMeters.toDouble() / 1000
-          : _straightDistance();
-
       setState(() {
-        _routePoints = points;
-        _distanceKm = distanceKm;
+        _routePoints = route.points
+            .map((point) => LatLng(point.latitude, point.longitude))
+            .toList(growable: false);
+        _distanceKm = route.distanceKm;
         _usesRoadRoute = true;
         _isLoading = false;
       });
 
-      widget.onDistanceChanged?.call(distanceKm);
-    } catch (_) {
+      widget.onDistanceChanged?.call(route.distanceKm);
+    } on RoadRouteException catch (error) {
       if (!mounted) {
         return;
       }
@@ -139,9 +100,8 @@ class _DeliveryRoutePreviewState extends State<DeliveryRoutePreview> {
         _distanceKm = distanceKm;
         _usesRoadRoute = false;
         _isLoading = false;
+        _routeError = error.message;
       });
-
-      widget.onDistanceChanged?.call(distanceKm);
     }
   }
 
@@ -310,8 +270,38 @@ class _DeliveryRoutePreviewState extends State<DeliveryRoutePreview> {
               ),
             ],
           ),
+          if (_routeError != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, size: 17),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '$_routeError Estimasi garis lurus tidak dipakai untuk ongkir.',
+                      style: GoogleFonts.inter(fontSize: 9, height: 1.4),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Coba lagi',
+                    onPressed: _isLoading ? null : _loadRoute,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 5),
+          ],
           Text(
-            'Ongkos kirim dihitung Rp5.000 per kilometer dari toko Kanzza.',
+            _usesRoadRoute
+                ? 'Ongkos kirim dihitung Rp5.000 per kilometer dari toko Kanzza.'
+                : 'Rute jalan harus tersedia sebelum pesanan delivery dibuat.',
             style: GoogleFonts.inter(
               color: theme.textTheme.bodySmall?.color,
               fontSize: 9,

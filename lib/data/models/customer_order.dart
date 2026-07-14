@@ -1,4 +1,4 @@
-import 'address.dart';
+import 'user.dart';
 
 class CustomerOrderItemModel {
   final int id;
@@ -175,6 +175,8 @@ class CustomerOrderModel {
   final String paymentStatus;
   final String deliveryMethod;
   final String? paymentMethod;
+  final UserModel? customer;
+  final UserModel? cashier;
   final int subtotal;
   final int shippingCost;
   final int discount;
@@ -204,6 +206,8 @@ class CustomerOrderModel {
     required this.changeAmount,
     required this.items,
     this.paymentMethod,
+    this.customer,
+    this.cashier,
     this.addressSnapshot,
     this.notes,
     this.paidAt,
@@ -218,6 +222,8 @@ class CustomerOrderModel {
     final rawItems = json['items'];
     final rawPayment = json['latest_payment'];
     final rawAddress = json['address'];
+    final rawCustomer = json['customer'];
+    final rawCashier = json['cashier'];
 
     return CustomerOrderModel(
       id: _parseInt(json['id']),
@@ -244,6 +250,12 @@ class CustomerOrderModel {
           'delivery',
       paymentMethod:
           _parseNullableString(json['payment_method']),
+      customer: rawCustomer is Map
+          ? UserModel.fromJson(Map<String, dynamic>.from(rawCustomer))
+          : null,
+      cashier: rawCashier is Map
+          ? UserModel.fromJson(Map<String, dynamic>.from(rawCashier))
+          : null,
       subtotal: _parseInt(json['subtotal']),
       shippingCost: _parseInt(json['shipping_cost']),
       discount: _parseInt(json['discount']),

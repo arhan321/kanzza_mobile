@@ -120,7 +120,7 @@ class AppTheme {
         backgroundColor: Colors.white,
 
         indicatorColor:
-            primaryColor.withOpacity(.12),
+            primaryColor.withValues(alpha: .12),
 
         labelTextStyle:
             WidgetStateProperty.all(

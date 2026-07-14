@@ -50,6 +50,14 @@ class LocationService {
     return _detectCurrentLocation(allowLastKnownPosition: true);
   }
 
+  Future<DetectedLocation> detectFreshCurrentLocation() async {
+    return _detectCurrentLocation(
+      allowLastKnownPosition: false,
+      accuracy: LocationAccuracy.best,
+      timeout: const Duration(seconds: 30),
+    );
+  }
+
   Future<DetectedLocation> _detectCurrentLocation({
     required bool allowLastKnownPosition,
     LocationAccuracy accuracy = LocationAccuracy.high,

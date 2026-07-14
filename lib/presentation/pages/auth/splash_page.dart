@@ -134,7 +134,7 @@ class _SplashPageState extends State<SplashPage> {
                     width: 104,
                     height: 104,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.12),
+                      color: Colors.white.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -185,10 +185,10 @@ class _SplashPageState extends State<SplashPage> {
                       constraints: const BoxConstraints(maxWidth: 460),
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.12),
+                        color: Colors.white.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.16),
+                          color: Colors.white.withValues(alpha: 0.16),
                         ),
                       ),
                       child: Column(

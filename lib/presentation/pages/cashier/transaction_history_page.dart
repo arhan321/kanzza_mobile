@@ -446,7 +446,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                                 decoration: BoxDecoration(
                                   color: const Color(
                                     0xFFFF9800,
-                                  ).withOpacity(0.12),
+                                  ).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: const Icon(
@@ -611,7 +611,6 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   }
 
   Widget _buildDetailCard({required List<Widget> children}) {
-    final theme = Theme.of(context);
     final isDark = Provider.of<ThemeProvider>(
       context,
       listen: false,
@@ -689,7 +688,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: const Color(0xFF9B5EFF).withOpacity(0.12),
+              color: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
@@ -826,7 +825,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -896,7 +895,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
             tooltip: 'Muat ulang',
             onPressed: _isLoading || _isRefreshing ? null : _refresh,
             style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF9B5EFF).withOpacity(0.12),
+              backgroundColor: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
               foregroundColor: const Color(0xFF9B5EFF),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1039,7 +1038,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                 ? null
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -1053,7 +1052,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: stat.color.withOpacity(0.10),
+                  color: stat.color.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(stat.icon, color: stat.color, size: 19),
@@ -1110,7 +1109,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 9,
                   offset: const Offset(0, 3),
                 ),
@@ -1171,7 +1170,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               itemCount: _periodOptions.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 7),
+              separatorBuilder: (_, _) => const SizedBox(width: 7),
               itemBuilder: (context, index) {
                 final period = _periodOptions[index];
                 final selected = _selectedPeriod == period;
@@ -1345,7 +1344,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                 ? null
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -1357,7 +1356,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF9800).withOpacity(0.10),
+                  color: const Color(0xFFFF9800).withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -1460,9 +1459,9 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.20)),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
       ),
       child: Text(
         text,
@@ -1480,9 +1479,9 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.10),
+        color: Colors.red.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: Colors.red.withOpacity(0.22)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.22)),
       ),
       child: Row(
         children: [

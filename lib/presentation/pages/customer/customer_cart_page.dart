@@ -334,7 +334,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -390,7 +390,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
             tooltip: 'Perbarui harga dan stok',
             onPressed: _isRefreshing ? null : _refreshProducts,
             style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF9B5EFF).withOpacity(0.12),
+              backgroundColor: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
               foregroundColor: const Color(0xFF9B5EFF),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -413,7 +413,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
               tooltip: 'Kosongkan keranjang',
               onPressed: _showDeleteAllDialog,
               style: IconButton.styleFrom(
-                backgroundColor: Colors.red.withOpacity(0.10),
+                backgroundColor: Colors.red.withValues(alpha: 0.10),
                 foregroundColor: Colors.red.shade400,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -491,9 +491,9 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: color.withOpacity(0.24)),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
       ),
       child: Row(
         children: [
@@ -522,7 +522,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: unavailable
-              ? Colors.red.withOpacity(0.34)
+              ? Colors.red.withValues(alpha: 0.34)
               : isDark
               ? const Color(0xFF1E1E35)
               : const Color(0xFFE5E7EB),
@@ -531,7 +531,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -625,7 +625,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
                         _removeItem(item);
                       },
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.red.withOpacity(0.10),
+                        backgroundColor: Colors.red.withValues(alpha: 0.10),
                         foregroundColor: Colors.red.shade400,
                       ),
                       icon: const Icon(Icons.delete_outline_rounded, size: 20),
@@ -651,7 +651,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
             ? Center(
                 child: Icon(
                   Icons.shopping_bag_outlined,
-                  color: const Color(0xFF9B5EFF).withOpacity(0.50),
+                  color: const Color(0xFF9B5EFF).withValues(alpha: 0.50),
                   size: 32,
                 ),
               )
@@ -662,7 +662,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
                   return Center(
                     child: Icon(
                       Icons.broken_image_outlined,
-                      color: const Color(0xFF9B5EFF).withOpacity(0.50),
+                      color: const Color(0xFF9B5EFF).withValues(alpha: 0.50),
                       size: 32,
                     ),
                   );
@@ -688,9 +688,9 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: color.withOpacity(0.20)),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
       ),
       child: Text(
         text,
@@ -717,9 +717,9 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
         height: 31,
         decoration: BoxDecoration(
           color: onPressed == null
-              ? Theme.of(context).disabledColor.withOpacity(0.08)
+              ? Theme.of(context).disabledColor.withValues(alpha: 0.08)
               : isPrimary
-              ? const Color(0xFF9B5EFF).withOpacity(0.16)
+              ? const Color(0xFF9B5EFF).withValues(alpha: 0.16)
               : isDark
               ? const Color(0xFF1E1E35)
               : const Color(0xFFF3F4F6),
@@ -766,7 +766,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
               ? null
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 12,
                     offset: const Offset(0, -3),
                   ),

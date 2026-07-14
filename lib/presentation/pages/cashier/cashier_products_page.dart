@@ -493,7 +493,7 @@ class _CashierProductsPageState
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -553,7 +553,7 @@ class _CashierProductsPageState
             onPressed: _isLoading ? null : _refresh,
             style: IconButton.styleFrom(
               backgroundColor:
-                  const Color(0xFF9B5EFF).withOpacity(0.12),
+                  const Color(0xFF9B5EFF).withValues(alpha: 0.12),
               foregroundColor: const Color(0xFF9B5EFF),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -743,8 +743,6 @@ class _CashierProductsPageState
   }
 
   Widget _buildCategoryFilter(bool isDark) {
-    final theme = Theme.of(context);
-
     return SizedBox(
       height: 42,
       child: ListView(
@@ -842,10 +840,10 @@ class _CashierProductsPageState
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.10),
+        color: Colors.red.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Colors.red.withOpacity(0.25),
+          color: Colors.red.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
@@ -901,7 +899,7 @@ class _CashierProductsPageState
                 ? null
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -1046,7 +1044,7 @@ class _CashierProductsPageState
       return Center(
         child: Icon(
           Icons.inventory_2_rounded,
-          color: const Color(0xFF9B5EFF).withOpacity(0.55),
+          color: const Color(0xFF9B5EFF).withValues(alpha: 0.55),
           size: iconSize,
         ),
       );
@@ -1059,7 +1057,7 @@ class _CashierProductsPageState
         return Center(
           child: Icon(
             Icons.broken_image_outlined,
-            color: const Color(0xFF9B5EFF).withOpacity(0.55),
+            color: const Color(0xFF9B5EFF).withValues(alpha: 0.55),
             size: iconSize,
           ),
         );

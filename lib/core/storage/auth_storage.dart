@@ -10,9 +10,7 @@ class AuthStorage {
   static const String _tokenKey = 'kanzza_auth_token';
   static const String _userKey = 'kanzza_auth_user';
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<void> saveSession({
     required String token,

@@ -22,16 +22,12 @@ class CustomerProfilePage extends StatefulWidget {
   const CustomerProfilePage({super.key});
 
   @override
-  State<CustomerProfilePage> createState() =>
-      _CustomerProfilePageState();
+  State<CustomerProfilePage> createState() => _CustomerProfilePageState();
 }
 
-class _CustomerProfilePageState
-    extends State<CustomerProfilePage> {
-  final UserRepository _userRepository =
-      UserRepository();
-  final AddressRepository _addressRepository =
-      AddressRepository();
+class _CustomerProfilePageState extends State<CustomerProfilePage> {
+  final UserRepository _userRepository = UserRepository();
+  final AddressRepository _addressRepository = AddressRepository();
 
   UserModel? _user;
   List<AddressModel> _addresses = [];
@@ -47,9 +43,7 @@ class _CustomerProfilePageState
     _loadProfile();
   }
 
-  Future<void> _loadProfile({
-    bool isRefresh = false,
-  }) async {
+  Future<void> _loadProfile({bool isRefresh = false}) async {
     if (mounted) {
       setState(() {
         if (isRefresh) {
@@ -63,8 +57,7 @@ class _CustomerProfilePageState
     }
 
     try {
-      final cachedUser =
-          await _userRepository.getCachedUser();
+      final cachedUser = await _userRepository.getCachedUser();
 
       if (mounted && cachedUser != null) {
         setState(() {
@@ -78,8 +71,7 @@ class _CustomerProfilePageState
       ]);
 
       final user = results[0] as UserModel;
-      final addresses =
-          results[1] as List<AddressModel>;
+      final addresses = results[1] as List<AddressModel>;
 
       if (!mounted) {
         return;
@@ -100,13 +92,9 @@ class _CustomerProfilePageState
 
       _handleError(error.firstValidationError);
     } catch (error) {
-      debugPrint(
-        'LOAD CUSTOMER PROFILE ERROR: $error',
-      );
+      debugPrint('LOAD CUSTOMER PROFILE ERROR: $error');
 
-      _handleError(
-        'Profil gagal dimuat. Silakan coba kembali.',
-      );
+      _handleError('Profil gagal dimuat. Silakan coba kembali.');
     }
   }
 
@@ -129,10 +117,9 @@ class _CustomerProfilePageState
       return;
     }
 
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.login,
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
   }
 
   Future<void> _refresh() async {
@@ -146,10 +133,7 @@ class _CustomerProfilePageState
   Future<void> _openAddresses() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const CustomerAddressesPage(),
-      ),
+      MaterialPageRoute(builder: (_) => const CustomerAddressesPage()),
     );
 
     if (!mounted) {
@@ -162,20 +146,14 @@ class _CustomerProfilePageState
   Future<void> _openOrders() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const CustomerOrdersPage(),
-      ),
+      MaterialPageRoute(builder: (_) => const CustomerOrdersPage()),
     );
   }
 
   Future<void> _openCart() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const CustomerCartPage(),
-      ),
+      MaterialPageRoute(builder: (_) => const CustomerCartPage()),
     );
   }
 
@@ -196,50 +174,38 @@ class _CustomerProfilePageState
         return AlertDialog(
           backgroundColor: theme.cardColor,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20),
             side: BorderSide(
-              color: isDark
-                  ? const Color(0xFF1E1E35)
-                  : const Color(0xFFE5E7EB),
+              color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
             ),
           ),
           title: Text(
             'Konfirmasi Logout',
             style: GoogleFonts.poppins(
-              color:
-                  theme.textTheme.titleLarge?.color,
+              color: theme.textTheme.titleLarge?.color,
               fontWeight: FontWeight.w700,
             ),
           ),
           content: Text(
             'Apakah Anda yakin ingin keluar dari akun ini?',
             style: GoogleFonts.inter(
-              color:
-                  theme.textTheme.bodyMedium?.color,
+              color: theme.textTheme.bodyMedium?.color,
               height: 1.5,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  false,
-                );
+                Navigator.pop(dialogContext, false);
               },
               child: const Text('Batal'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  true,
-                );
+                Navigator.pop(dialogContext, true);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    Colors.red.shade400,
+                backgroundColor: Colors.red.shade400,
                 foregroundColor: Colors.white,
               ),
               child: const Text('Logout'),
@@ -263,18 +229,15 @@ class _CustomerProfilePageState
       _isLoggingOut = true;
     });
 
-    try {
-      await _userRepository.logout();
-    } finally {
-      if (!mounted) {
-        return;
-      }
+    await _userRepository.logout();
 
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.login,
-        (route) => false,
-      );
+    if (!mounted) {
+      return;
     }
+
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
   }
 
   AddressModel? get _defaultAddress {
@@ -284,9 +247,7 @@ class _CustomerProfilePageState
       }
     }
 
-    return _addresses.isNotEmpty
-        ? _addresses.first
-        : null;
+    return _addresses.isNotEmpty ? _addresses.first : null;
   }
 
   String get _initials {
@@ -302,9 +263,7 @@ class _CustomerProfilePageState
         .toList();
 
     if (parts.length == 1) {
-      return parts.first
-          .substring(0, 1)
-          .toUpperCase();
+      return parts.first.substring(0, 1).toUpperCase();
     }
 
     return '${parts.first.substring(0, 1)}'
@@ -317,13 +276,10 @@ class _CustomerProfilePageState
       return '-';
     }
 
-    return DateFormat('dd MMM yyyy')
-        .format(value.toLocal());
+    return DateFormat('dd MMM yyyy').format(value.toLocal());
   }
 
-  void _showUnsupportedFeature(
-    String feature,
-  ) {
+  void _showUnsupportedFeature(String feature) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -335,12 +291,10 @@ class _CustomerProfilePageState
               fontWeight: FontWeight.w500,
             ),
           ),
-          backgroundColor:
-              Colors.orange.shade500,
+          backgroundColor: Colors.orange.shade500,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(13),
           ),
         ),
       );
@@ -348,26 +302,20 @@ class _CustomerProfilePageState
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider =
-        Provider.of<ThemeProvider>(context);
-    final cartProvider =
-        context.watch<CustomerCartProvider>();
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final cartProvider = context.watch<CustomerCartProvider>();
     final isDark = themeProvider.isDarkMode;
     final theme = Theme.of(context);
-    final width =
-        MediaQuery.of(context).size.width;
+    final width = MediaQuery.of(context).size.width;
     final horizontalPadding = width * 0.04;
     final isTablet = width > 600;
 
     SystemChrome.setSystemUIOverlayStyle(
-      isDark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
+      isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
     );
 
     return Scaffold(
-      backgroundColor:
-          theme.scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -376,32 +324,23 @@ class _CustomerProfilePageState
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDark
-                ? const [
-                    Color(0xFF13102A),
-                    Color(0xFF0D0D12),
-                  ]
-                : const [
-                    Color(0xFFF5F5FA),
-                    Color(0xFFE8E8F0),
-                  ],
+                ? const [Color(0xFF13102A), Color(0xFF0D0D12)]
+                : const [Color(0xFFF5F5FA), Color(0xFFE8E8F0)],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               _buildHeader(
-                horizontalPadding:
-                    horizontalPadding,
+                horizontalPadding: horizontalPadding,
                 isDark: isDark,
                 isTablet: isTablet,
               ),
               Expanded(
                 child: _buildBody(
-                  horizontalPadding:
-                      horizontalPadding,
+                  horizontalPadding: horizontalPadding,
                   isDark: isDark,
-                  cartItems:
-                      cartProvider.totalItems,
+                  cartItems: cartProvider.totalItems,
                 ),
               ),
             ],
@@ -426,14 +365,10 @@ class _CustomerProfilePageState
         14,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF13102A)
-            : Colors.white,
+        color: isDark ? const Color(0xFF13102A) : Colors.white,
         border: Border(
           bottom: BorderSide(
-            color: isDark
-                ? const Color(0xFF1E1E35)
-                : const Color(0xFFE5E7EB),
+            color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
           ),
         ),
       ),
@@ -448,14 +383,12 @@ class _CustomerProfilePageState
                   ? const Color(0xFF16162A)
                   : const Color(0xFFF5F5FA),
               shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             icon: Icon(
               Icons.arrow_back_rounded,
-              color:
-                  theme.textTheme.titleLarge?.color,
+              color: theme.textTheme.titleLarge?.color,
             ),
           ),
           const SizedBox(width: 10),
@@ -463,8 +396,7 @@ class _CustomerProfilePageState
             child: Text(
               'Profil Saya',
               style: GoogleFonts.poppins(
-                color:
-                    theme.textTheme.titleLarge?.color,
+                color: theme.textTheme.titleLarge?.color,
                 fontSize: isTablet ? 24 : 19,
                 fontWeight: FontWeight.w700,
               ),
@@ -472,34 +404,24 @@ class _CustomerProfilePageState
           ),
           IconButton(
             tooltip: 'Muat ulang',
-            onPressed:
-                _isLoading || _isRefreshing
-                ? null
-                : _refresh,
+            onPressed: _isLoading || _isRefreshing ? null : _refresh,
             style: IconButton.styleFrom(
-              backgroundColor:
-                  const Color(0xFF9B5EFF)
-                      .withOpacity(0.12),
-              foregroundColor:
-                  const Color(0xFF9B5EFF),
+              backgroundColor: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
+              foregroundColor: const Color(0xFF9B5EFF),
               shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             icon: _isRefreshing
                 ? const SizedBox(
                     width: 19,
                     height: 19,
-                    child:
-                        CircularProgressIndicator(
+                    child: CircularProgressIndicator(
                       color: Color(0xFF9B5EFF),
                       strokeWidth: 2,
                     ),
                   )
-                : const Icon(
-                    Icons.refresh_rounded,
-                  ),
+                : const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -513,14 +435,11 @@ class _CustomerProfilePageState
   }) {
     if (_isLoading && _user == null) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF9B5EFF),
-        ),
+        child: CircularProgressIndicator(color: Color(0xFF9B5EFF)),
       );
     }
 
-    if (_errorMessage != null &&
-        _user == null) {
+    if (_errorMessage != null && _user == null) {
       return _buildErrorState();
     }
 
@@ -528,8 +447,7 @@ class _CustomerProfilePageState
       onRefresh: _refresh,
       color: const Color(0xFF9B5EFF),
       child: ListView(
-        physics:
-            const AlwaysScrollableScrollPhysics(
+        physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
         padding: EdgeInsets.fromLTRB(
@@ -551,10 +469,7 @@ class _CustomerProfilePageState
           const SizedBox(height: 22),
           _sectionTitle('Aktivitas Customer'),
           const SizedBox(height: 10),
-          _buildActivityMenu(
-            isDark: isDark,
-            cartItems: cartItems,
-          ),
+          _buildActivityMenu(isDark: isDark, cartItems: cartItems),
           const SizedBox(height: 22),
           _sectionTitle('Pengaturan'),
           const SizedBox(height: 10),
@@ -569,7 +484,6 @@ class _CustomerProfilePageState
   }
 
   Widget _buildProfileHero(bool isDark) {
-    final theme = Theme.of(context);
     final user = _user;
 
     return Container(
@@ -578,18 +492,12 @@ class _CustomerProfilePageState
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF9B5EFF),
-            Color(0xFF6C3BD8),
-          ],
+          colors: [Color(0xFF9B5EFF), Color(0xFF6C3BD8)],
         ),
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color:
-                const Color(0xFF9B5EFF)
-                    .withOpacity(0.30),
+            color: const Color(0xFF9B5EFF).withValues(alpha: 0.30),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -601,11 +509,10 @@ class _CustomerProfilePageState
             width: 92,
             height: 92,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
+              color: Colors.white.withValues(alpha: 0.18),
               shape: BoxShape.circle,
               border: Border.all(
-                color:
-                    Colors.white.withOpacity(0.34),
+                color: Colors.white.withValues(alpha: 0.34),
                 width: 2,
               ),
             ),
@@ -634,7 +541,7 @@ class _CustomerProfilePageState
             user?.email ?? '-',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              color: Colors.white.withOpacity(0.82),
+              color: Colors.white.withValues(alpha: 0.82),
               fontSize: 12,
             ),
           ),
@@ -644,17 +551,12 @@ class _CustomerProfilePageState
             spacing: 7,
             runSpacing: 7,
             children: [
-              _heroBadge(
-                label: 'Customer',
-                icon:
-                    Icons.person_outline_rounded,
-              ),
+              _heroBadge(label: 'Customer', icon: Icons.person_outline_rounded),
               _heroBadge(
                 label: user?.isActive == true
                     ? 'Akun Aktif'
                     : 'Akun ${user?.status ?? '-'}',
-                icon:
-                    Icons.verified_user_outlined,
+                icon: Icons.verified_user_outlined,
               ),
             ],
           ),
@@ -663,31 +565,18 @@ class _CustomerProfilePageState
     );
   }
 
-  Widget _heroBadge({
-    required String label,
-    required IconData icon,
-  }) {
+  Widget _heroBadge({required String label, required IconData icon}) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius:
-            BorderRadius.circular(9),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.20),
-        ),
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 14,
-          ),
+          Icon(icon, color: Colors.white, size: 14),
           const SizedBox(width: 5),
           Text(
             label,
@@ -708,17 +597,14 @@ class _CustomerProfilePageState
     return Text(
       title,
       style: GoogleFonts.poppins(
-        color:
-            theme.textTheme.titleLarge?.color,
+        color: theme.textTheme.titleLarge?.color,
         fontSize: 15,
         fontWeight: FontWeight.w700,
       ),
     );
   }
 
-  Widget _buildAccountInformation(
-    bool isDark,
-  ) {
+  Widget _buildAccountInformation(bool isDark) {
     return _card(
       isDark: isDark,
       child: Column(
@@ -742,19 +628,15 @@ class _CustomerProfilePageState
           ),
           _divider(isDark),
           _informationRow(
-            icon:
-                Icons.calendar_month_outlined,
+            icon: Icons.calendar_month_outlined,
             label: 'Terdaftar sejak',
-            value:
-                _formatDate(_user?.createdAt),
+            value: _formatDate(_user?.createdAt),
           ),
           _divider(isDark),
           _informationRow(
-            icon:
-                Icons.login_rounded,
+            icon: Icons.login_rounded,
             label: 'Login terakhir',
-            value:
-                _formatDate(_user?.lastLoginAt),
+            value: _formatDate(_user?.lastLoginAt),
           ),
         ],
       ),
@@ -769,42 +651,28 @@ class _CustomerProfilePageState
     final theme = Theme.of(context);
 
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(vertical: 9),
+      padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color:
-                  const Color(0xFF9B5EFF)
-                      .withOpacity(0.10),
-              borderRadius:
-                  BorderRadius.circular(10),
+              color: const Color(0xFF9B5EFF).withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              icon,
-              color:
-                  const Color(0xFF9B5EFF),
-              size: 19,
-            ),
+            child: Icon(icon, color: const Color(0xFF9B5EFF), size: 19),
           ),
           const SizedBox(width: 11),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .bodySmall
-                        ?.color,
+                    color: theme.textTheme.bodySmall?.color,
                     fontSize: 9,
                   ),
                 ),
@@ -812,13 +680,9 @@ class _CustomerProfilePageState
                 Text(
                   value,
                   style: GoogleFonts.inter(
-                    color: theme
-                        .textTheme
-                        .titleLarge
-                        ?.color,
+                    color: theme.textTheme.titleLarge?.color,
                     fontSize: 12,
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -829,10 +693,7 @@ class _CustomerProfilePageState
     );
   }
 
-  Widget _buildActivityMenu({
-    required bool isDark,
-    required int cartItems,
-  }) {
+  Widget _buildActivityMenu({required bool isDark, required int cartItems}) {
     final defaultAddress = _defaultAddress;
 
     return _card(
@@ -840,35 +701,28 @@ class _CustomerProfilePageState
       child: Column(
         children: [
           _menuItem(
-            icon:
-                Icons.receipt_long_outlined,
+            icon: Icons.receipt_long_outlined,
             title: 'Pesanan Saya',
-            subtitle:
-                'Lihat status dan riwayat pesanan',
+            subtitle: 'Lihat status dan riwayat pesanan',
             trailingText: null,
             onTap: _openOrders,
           ),
           _divider(isDark),
           _menuItem(
-            icon:
-                Icons.shopping_cart_outlined,
+            icon: Icons.shopping_cart_outlined,
             title: 'Keranjang Belanja',
-            subtitle:
-                'Produk yang akan dibeli',
-            trailingText:
-                '$cartItems item',
+            subtitle: 'Produk yang akan dibeli',
+            trailingText: '$cartItems item',
             onTap: _openCart,
           ),
           _divider(isDark),
           _menuItem(
-            icon:
-                Icons.location_on_outlined,
+            icon: Icons.location_on_outlined,
             title: 'Alamat Saya',
             subtitle: defaultAddress == null
                 ? 'Belum ada alamat tersimpan'
                 : '${defaultAddress.label} • ${defaultAddress.fullAddress}',
-            trailingText:
-                '${_addresses.length}',
+            trailingText: '${_addresses.length}',
             onTap: _openAddresses,
           ),
         ],
@@ -877,22 +731,16 @@ class _CustomerProfilePageState
   }
 
   Widget _buildSettings(bool isDark) {
-    final themeProvider =
-        Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return _card(
       isDark: isDark,
       child: Column(
         children: [
           SwitchListTile.adaptive(
-            contentPadding:
-                const EdgeInsets.symmetric(
-              horizontal: 4,
-            ),
-            value:
-                themeProvider.isDarkMode,
-            activeColor:
-                const Color(0xFF9B5EFF),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            value: themeProvider.isDarkMode,
+            activeThumbColor: const Color(0xFF9B5EFF),
             onChanged: (value) {
               themeProvider.setDarkMode(value);
             },
@@ -900,27 +748,20 @@ class _CustomerProfilePageState
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color:
-                    const Color(0xFF9B5EFF)
-                        .withOpacity(0.10),
-                borderRadius:
-                    BorderRadius.circular(10),
+                color: const Color(0xFF9B5EFF).withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 themeProvider.isDarkMode
                     ? Icons.dark_mode_outlined
                     : Icons.light_mode_outlined,
-                color:
-                    const Color(0xFF9B5EFF),
+                color: const Color(0xFF9B5EFF),
               ),
             ),
             title: Text(
               'Mode Gelap',
               style: GoogleFonts.inter(
-                color: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.color,
+                color: Theme.of(context).textTheme.titleLarge?.color,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -928,10 +769,7 @@ class _CustomerProfilePageState
             subtitle: Text(
               'Sesuaikan tampilan aplikasi',
               style: GoogleFonts.inter(
-                color: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.color,
+                color: Theme.of(context).textTheme.bodySmall?.color,
                 fontSize: 10,
               ),
             ),
@@ -940,26 +778,20 @@ class _CustomerProfilePageState
           _menuItem(
             icon: Icons.edit_outlined,
             title: 'Edit Profil',
-            subtitle:
-                'Nama dan nomor telepon',
+            subtitle: 'Nama dan nomor telepon',
             trailingText: null,
             onTap: () {
-              _showUnsupportedFeature(
-                'Edit profil',
-              );
+              _showUnsupportedFeature('Edit profil');
             },
           ),
           _divider(isDark),
           _menuItem(
             icon: Icons.lock_outline_rounded,
             title: 'Ubah Password',
-            subtitle:
-                'Perbarui keamanan akun',
+            subtitle: 'Perbarui keamanan akun',
             trailingText: null,
             onTap: () {
-              _showUnsupportedFeature(
-                'Ubah password',
-              );
+              _showUnsupportedFeature('Ubah password');
             },
           ),
         ],
@@ -977,34 +809,21 @@ class _CustomerProfilePageState
     final theme = Theme.of(context);
 
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(
-        horizontal: 4,
-        vertical: 2,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       onTap: onTap,
       leading: Container(
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color:
-              const Color(0xFF9B5EFF)
-                  .withOpacity(0.10),
-          borderRadius:
-              BorderRadius.circular(10),
+          color: const Color(0xFF9B5EFF).withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(
-          icon,
-          color:
-              const Color(0xFF9B5EFF),
-          size: 19,
-        ),
+        child: Icon(icon, color: const Color(0xFF9B5EFF), size: 19),
       ),
       title: Text(
         title,
         style: GoogleFonts.inter(
-          color:
-              theme.textTheme.titleLarge?.color,
+          color: theme.textTheme.titleLarge?.color,
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
@@ -1014,8 +833,7 @@ class _CustomerProfilePageState
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: GoogleFonts.inter(
-          color:
-              theme.textTheme.bodySmall?.color,
+          color: theme.textTheme.bodySmall?.color,
           fontSize: 10,
         ),
       ),
@@ -1024,33 +842,24 @@ class _CustomerProfilePageState
         children: [
           if (trailingText != null)
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 7,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
               decoration: BoxDecoration(
-                color:
-                    const Color(0xFF9B5EFF)
-                        .withOpacity(0.09),
-                borderRadius:
-                    BorderRadius.circular(8),
+                color: const Color(0xFF9B5EFF).withValues(alpha: 0.09),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 trailingText,
                 style: GoogleFonts.inter(
-                  color:
-                      const Color(0xFF9B5EFF),
+                  color: const Color(0xFF9B5EFF),
                   fontSize: 8,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
           const SizedBox(width: 5),
           Icon(
             Icons.chevron_right_rounded,
-            color:
-                theme.textTheme.bodySmall?.color,
+            color: theme.textTheme.bodySmall?.color,
           ),
         ],
       ),
@@ -1063,18 +872,12 @@ class _CustomerProfilePageState
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color:
-            Colors.orange.withOpacity(0.09),
-        borderRadius:
-            BorderRadius.circular(13),
-        border: Border.all(
-          color:
-              Colors.orange.withOpacity(0.20),
-        ),
+        color: Colors.orange.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.20)),
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             Icons.info_outline_rounded,
@@ -1088,10 +891,7 @@ class _CustomerProfilePageState
               'Edit profil dan ubah password belum diaktifkan '
               'karena endpoint backend untuk kedua fitur tersebut belum tersedia.',
               style: GoogleFonts.inter(
-                color: theme
-                    .textTheme
-                    .bodyMedium
-                    ?.color,
+                color: theme.textTheme.bodyMedium?.color,
                 fontSize: 10,
                 height: 1.45,
               ),
@@ -1106,51 +906,32 @@ class _CustomerProfilePageState
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: _isLoggingOut
-            ? null
-            : _showLogoutConfirmation,
+        onPressed: _isLoggingOut ? null : _showLogoutConfirmation,
         icon: _isLoggingOut
             ? const SizedBox(
                 width: 19,
                 height: 19,
-                child:
-                    CircularProgressIndicator(
+                child: CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 2,
                 ),
               )
-            : const Icon(
-                Icons.logout_rounded,
-              ),
-        label: Text(
-          _isLoggingOut
-              ? 'Sedang Logout...'
-              : 'Logout',
-        ),
+            : const Icon(Icons.logout_rounded),
+        label: Text(_isLoggingOut ? 'Sedang Logout...' : 'Logout'),
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              Colors.red.shade400,
+          backgroundColor: Colors.red.shade400,
           foregroundColor: Colors.white,
-          padding:
-              const EdgeInsets.symmetric(
-            vertical: 14,
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w700,
-          ),
+          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
         ),
       ),
     );
   }
 
-  Widget _card({
-    required bool isDark,
-    required Widget child,
-  }) {
+  Widget _card({required bool isDark, required Widget child}) {
     final theme = Theme.of(context);
 
     return Container(
@@ -1158,19 +939,15 @@ class _CustomerProfilePageState
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark
-              ? const Color(0xFF1E1E35)
-              : const Color(0xFFE5E7EB),
+          color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
         ),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color:
-                      Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 9,
                   offset: const Offset(0, 3),
                 ),
@@ -1182,9 +959,7 @@ class _CustomerProfilePageState
 
   Widget _divider(bool isDark) {
     return Divider(
-      color: isDark
-          ? const Color(0xFF1E1E35)
-          : const Color(0xFFE5E7EB),
+      color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
       height: 1,
     );
   }
@@ -1194,32 +969,23 @@ class _CustomerProfilePageState
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color:
-            Colors.orange.withOpacity(0.10),
-        borderRadius:
-            BorderRadius.circular(13),
+        color: Colors.orange.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(13),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: Colors.orange.shade500,
-          ),
+          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade500),
           const SizedBox(width: 9),
           Expanded(
             child: Text(
               _errorMessage!,
               style: GoogleFonts.inter(
-                color:
-                    Colors.orange.shade600,
+                color: Colors.orange.shade600,
                 fontSize: 11,
               ),
             ),
           ),
-          TextButton(
-            onPressed: _refresh,
-            child: const Text('Ulangi'),
-          ),
+          TextButton(onPressed: _refresh, child: const Text('Ulangi')),
         ],
       ),
     );
@@ -1232,53 +998,37 @@ class _CustomerProfilePageState
       onRefresh: _refresh,
       color: const Color(0xFF9B5EFF),
       child: ListView(
-        physics:
-            const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
           SizedBox(
-            height: MediaQuery.of(context)
-                    .size
-                    .height *
-                0.70,
+            height: MediaQuery.of(context).size.height * 0.70,
             child: Center(
               child: Padding(
-                padding:
-                    const EdgeInsets.all(28),
+                padding: const EdgeInsets.all(28),
                 child: Column(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.cloud_off_rounded,
-                      color:
-                          Colors.red.shade300,
+                      color: Colors.red.shade300,
                       size: 64,
                     ),
                     const SizedBox(height: 17),
                     Text(
                       'Profil gagal dimuat',
-                      style:
-                          GoogleFonts.poppins(
-                        color: theme
-                            .textTheme
-                            .titleLarge
-                            ?.color,
+                      style: GoogleFonts.poppins(
+                        color: theme.textTheme.titleLarge?.color,
                         fontSize: 18,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _errorMessage ??
                           'Terjadi kesalahan saat mengambil profil.',
-                      textAlign:
-                          TextAlign.center,
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
-                        color: theme
-                            .textTheme
-                            .bodySmall
-                            ?.color,
+                        color: theme.textTheme.bodySmall?.color,
                         fontSize: 12,
                         height: 1.5,
                       ),
@@ -1288,20 +1038,11 @@ class _CustomerProfilePageState
                       onPressed: () {
                         _loadProfile();
                       },
-                      icon: const Icon(
-                        Icons.refresh_rounded,
-                      ),
-                      label: const Text(
-                        'Coba Lagi',
-                      ),
-                      style:
-                          ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color(
-                          0xFF9B5EFF,
-                        ),
-                        foregroundColor:
-                            Colors.white,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Coba Lagi'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF9B5EFF),
+                        foregroundColor: Colors.white,
                       ),
                     ),
                   ],

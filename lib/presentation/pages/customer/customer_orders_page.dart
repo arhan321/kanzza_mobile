@@ -731,7 +731,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -1024,7 +1024,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
                                 decoration: BoxDecoration(
                                   color: const Color(
                                     0xFF9B5EFF,
-                                  ).withOpacity(0.12),
+                                  ).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(13),
                                 ),
                                 child: const Icon(
@@ -1290,7 +1290,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: const Color(0xFF9B5EFF).withOpacity(0.12),
+              color: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
@@ -1615,7 +1615,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -1669,7 +1669,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
             style: IconButton.styleFrom(
               backgroundColor:
                   (_filterStartDate != null || _filterEndDate != null)
-                  ? const Color(0xFF9B5EFF).withOpacity(0.14)
+                  ? const Color(0xFF9B5EFF).withValues(alpha: 0.14)
                   : isDark
                   ? const Color(0xFF16162A)
                   : const Color(0xFFF5F5FA),
@@ -1685,7 +1685,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
             tooltip: 'Muat ulang',
             onPressed: _isLoading || _isRefreshing ? null : _refresh,
             style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF9B5EFF).withOpacity(0.12),
+              backgroundColor: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
               foregroundColor: const Color(0xFF9B5EFF),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1724,7 +1724,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
           vertical: 8,
         ),
         itemCount: _OrderFilter.values.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 7),
+        separatorBuilder: (_, _) => const SizedBox(width: 7),
         itemBuilder: (context, index) {
           final filter = _OrderFilter.values[index];
           final selected = _selectedFilter == filter;
@@ -1790,9 +1790,9 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       margin: EdgeInsets.fromLTRB(horizontalPadding, 8, horizontalPadding, 0),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFF9B5EFF).withOpacity(0.09),
+        color: const Color(0xFF9B5EFF).withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF9B5EFF).withOpacity(0.20)),
+        border: Border.all(color: const Color(0xFF9B5EFF).withValues(alpha: 0.20)),
       ),
       child: Row(
         children: [
@@ -1904,7 +1904,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 9,
                   offset: const Offset(0, 3),
                 ),
@@ -1920,7 +1920,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.11),
+                  color: statusColor.withValues(alpha: 0.11),
                   borderRadius: BorderRadius.circular(11),
                 ),
                 child: Icon(
@@ -2156,9 +2156,9 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.09),
+          color: color.withValues(alpha: 0.09),
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: color.withOpacity(0.22)),
+          border: Border.all(color: color.withValues(alpha: 0.22)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -2183,9 +2183,9 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.22)),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: Text(
         label,
@@ -2248,9 +2248,9 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.10),
+        color: Colors.orange.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: Colors.orange.withOpacity(0.22)),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.22)),
       ),
       child: Row(
         children: [

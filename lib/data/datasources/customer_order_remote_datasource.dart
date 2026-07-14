@@ -41,9 +41,9 @@ class CustomerOrderRemoteDataSource {
       body: {
         'delivery_method': deliveryMethod,
         'payment_method': paymentMethod,
-        if (distanceKm != null) 'distance_km': distanceKm,
-        if (shippingCost != null) 'shipping_cost': shippingCost,
-        if (addressId != null) 'address_id': addressId,
+        'distance_km': ?distanceKm,
+        'shipping_cost': ?shippingCost,
+        'address_id': ?addressId,
         'items': items,
         if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
       },

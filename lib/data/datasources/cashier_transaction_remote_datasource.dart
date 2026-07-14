@@ -18,7 +18,7 @@ class CashierTransactionRemoteDataSource {
     return _apiClient.post(
       ApiEndpoints.cashierTransactions,
       body: {
-        if (customerId != null) 'customer_id': customerId,
+        'customer_id': ?customerId,
         'items': items,
         'payment_amount': paymentAmount,
         if (notes != null && notes.trim().isNotEmpty)

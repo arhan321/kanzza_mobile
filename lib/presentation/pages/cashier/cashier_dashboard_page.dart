@@ -6,12 +6,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/api_endpoints.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/widgets/theme_toggle_button.dart';
 import '../../../data/models/user.dart';
+import '../../../data/models/customer_order.dart';
+import '../../../data/repositories/customer_order_repository.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../routes.dart';
 
@@ -24,7 +24,7 @@ class CashierDashboardPage extends StatefulWidget {
 
 class _CashierDashboardPageState extends State<CashierDashboardPage> {
   final UserRepository _userRepository = UserRepository();
-  final ApiClient _apiClient = ApiClient.instance;
+  final CustomerOrderRepository _orderRepository = CustomerOrderRepository();
 
   UserModel? _currentUser;
   List<_DashboardTransaction> _transactions = [];
@@ -88,23 +88,14 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
 
       final results = await Future.wait<dynamic>([
         _userRepository.getProfile(),
-        _apiClient.get(
-          ApiEndpoints.orders,
-          queryParameters: const {'per_page': 100},
-        ),
+        _orderRepository.getOrders(perPage: 100),
       ]);
 
       final user = results[0] as UserModel;
-      final transactionResponse = results[1];
+      final orders = results[1] as List<CustomerOrderModel>;
 
-      final transactions =
-          transactionResponse.dataAsList
-              .whereType<Map>()
-              .map(
-                (item) => _DashboardTransaction.fromJson(
-                  Map<String, dynamic>.from(item),
-                ),
-              )
+      final transactions = orders
+              .map(_DashboardTransaction.fromModel)
               .toList()
             ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -239,15 +230,13 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
       _isLoggingOut = true;
     });
 
-    try {
-      await _userRepository.logout();
-    } finally {
-      if (!mounted) {
-        return;
-      }
+    await _userRepository.logout();
 
-      _goToLogin();
+    if (!mounted) {
+      return;
     }
+
+    _goToLogin();
   }
 
   void _goToLogin() {
@@ -433,7 +422,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -460,8 +449,8 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
             isDark: isDark,
             icon: Icons.refresh_rounded,
             iconColor: const Color(0xFF9B5EFF),
-            backgroundColor: const Color(0xFF9B5EFF).withOpacity(0.12),
-            borderColor: const Color(0xFF9B5EFF).withOpacity(0.20),
+            backgroundColor: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
+            borderColor: const Color(0xFF9B5EFF).withValues(alpha: 0.20),
             onPressed: _isLoading || _isRefreshing ? null : _refreshDashboard,
             child: _isRefreshing
                 ? const SizedBox(
@@ -480,10 +469,10 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
             icon: Icons.logout_rounded,
             iconColor: Colors.red.shade400,
             backgroundColor: isDark
-                ? Colors.red.shade400.withOpacity(0.15)
+                ? Colors.red.shade400.withValues(alpha: 0.15)
                 : Colors.red.shade50,
             borderColor: isDark
-                ? Colors.red.shade400.withOpacity(0.30)
+                ? Colors.red.shade400.withValues(alpha: 0.30)
                 : Colors.red.shade200,
             onPressed: _isLoggingOut ? null : _showLogoutConfirmation,
             child: _isLoggingOut
@@ -610,7 +599,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF9B5EFF).withOpacity(0.30),
+            color: const Color(0xFF9B5EFF).withValues(alpha: 0.30),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -637,7 +626,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
                   'Total aktivitas hari ini: '
                   '${_todayTransactions.length} transaksi',
                   style: GoogleFonts.inter(
-                    color: Colors.white.withOpacity(0.90),
+                    color: Colors.white.withValues(alpha: 0.90),
                     fontSize: isTablet ? 16 : 13,
                   ),
                 ),
@@ -645,7 +634,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
                 Text(
                   'Data dashboard diambil langsung dari Laravel API.',
                   style: GoogleFonts.inter(
-                    color: Colors.white.withOpacity(0.72),
+                    color: Colors.white.withValues(alpha: 0.72),
                     fontSize: 11,
                   ),
                 ),
@@ -657,7 +646,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
             width: isTablet ? 60 : 48,
             height: isTablet ? 60 : 48,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.20),
+              color: Colors.white.withValues(alpha: 0.20),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
@@ -676,9 +665,9 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.10),
+        color: Colors.red.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.red.withOpacity(0.22)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.22)),
       ),
       child: Row(
         children: [
@@ -730,7 +719,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
                 ? null
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -747,7 +736,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: stat.color.withOpacity(0.10),
+                      color: stat.color.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(stat.icon, color: stat.color, size: 18),
@@ -759,9 +748,9 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: stat.color.withOpacity(0.10),
+                        color: stat.color.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: stat.color.withOpacity(0.20)),
+                        border: Border.all(color: stat.color.withValues(alpha: 0.20)),
                       ),
                       child: Text(
                         stat.badge,
@@ -863,7 +852,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
                     ? null
                     : [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -876,7 +865,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: item.color.withOpacity(0.10),
+                      color: item.color.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(item.icon, color: item.color, size: 22),
@@ -987,7 +976,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -999,7 +988,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: transaction.channelColor.withOpacity(0.10),
+              color: transaction.channelColor.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -1102,9 +1091,9 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.20)),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
       ),
       child: Text(
         text,
@@ -1265,45 +1254,21 @@ class _DashboardTransaction {
     required this.createdAt,
   });
 
-  factory _DashboardTransaction.fromJson(Map<String, dynamic> json) {
-    final rawCustomer = json['customer'];
-    final rawItems = json['items'];
-
-    String customerName = 'Pelanggan langsung';
-
-    if (rawCustomer is Map) {
-      final parsedName = rawCustomer['name']?.toString().trim();
-
-      if (parsedName != null && parsedName.isNotEmpty) {
-        customerName = parsedName;
-      }
-    }
-
+  factory _DashboardTransaction.fromModel(CustomerOrderModel order) {
+    final parsedCustomerName = order.customer?.name.trim();
     return _DashboardTransaction(
-      id: _parseInt(json['id']),
-      orderNumber: json['order_number']?.toString() ?? 'ORDER-${json['id']}',
-      customerName: customerName,
-      channel: json['channel']?.toString().trim().toLowerCase() ?? 'online',
-      orderStatus:
-          json['order_status']?.toString().trim().toLowerCase() ??
-          'pending_payment',
-      paymentStatus:
-          json['payment_status']?.toString().trim().toLowerCase() ?? 'unpaid',
-      paymentMethod:
-          json['payment_method']?.toString().trim().toLowerCase() ?? '-',
-      grandTotal: _parseInt(json['grand_total']),
-      itemCount: rawItems is List
-          ? rawItems.fold<int>(0, (total, item) {
-              if (item is Map) {
-                return total + _parseInt(item['quantity']);
-              }
-
-              return total;
-            })
-          : 0,
-      createdAt:
-          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-          DateTime.fromMillisecondsSinceEpoch(0),
+      id: order.id,
+      orderNumber: order.orderNumber,
+      customerName: parsedCustomerName == null || parsedCustomerName.isEmpty
+          ? 'Pelanggan langsung'
+          : parsedCustomerName,
+      channel: order.channel,
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod ?? '-',
+      grandTotal: order.grandTotal,
+      itemCount: order.totalQuantity,
+      createdAt: order.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 
@@ -1393,17 +1358,5 @@ class _DashboardTransaction {
       default:
         return const Color(0xFF6B7280);
     }
-  }
-
-  static int _parseInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 }

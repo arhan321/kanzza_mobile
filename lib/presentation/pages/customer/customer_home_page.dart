@@ -727,8 +727,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     required double horizontalPadding,
     required bool isDark,
   }) {
-    final theme = Theme.of(context);
-
     return SizedBox(
       height: 43,
       child: ListView(
@@ -823,7 +821,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 ? null
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 9,
                       offset: const Offset(0, 3),
                     ),
@@ -974,7 +972,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       return Center(
         child: Icon(
           Icons.inventory_2_rounded,
-          color: const Color(0xFF9B5EFF).withOpacity(0.50),
+          color: const Color(0xFF9B5EFF).withValues(alpha: 0.50),
           size: iconSize,
         ),
       );
@@ -987,7 +985,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         return Center(
           child: Icon(
             Icons.broken_image_outlined,
-            color: const Color(0xFF9B5EFF).withOpacity(0.50),
+            color: const Color(0xFF9B5EFF).withValues(alpha: 0.50),
             size: iconSize,
           ),
         );
@@ -1011,7 +1009,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.92),
+        color: color.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -1030,9 +1028,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.10),
+        color: Colors.orange.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: Colors.orange.withOpacity(0.24)),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.24)),
       ),
       child: Row(
         children: [

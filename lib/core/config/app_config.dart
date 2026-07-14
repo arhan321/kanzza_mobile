@@ -9,4 +9,11 @@ class AppConfig {
   static const Duration receiveTimeout = Duration(seconds: 30);
 
   static const String applicationName = 'Kanzza Frozen Food';
+
+  // Aktifkan hanya setelah endpoint POST /orders backend menerima dan
+  // mengembalikan payment_method "cash" untuk pesanan customer.
+  static const bool customerCodEnabled = bool.fromEnvironment(
+    'CUSTOMER_COD_ENABLED',
+    defaultValue: false,
+  );
 }

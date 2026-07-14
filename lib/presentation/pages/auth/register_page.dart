@@ -281,7 +281,7 @@ class _RegisterPageState extends State<RegisterPage> {
               height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -293,7 +293,7 @@ class _RegisterPageState extends State<RegisterPage> {
               height: 240,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withValues(alpha: 0.04),
               ),
             ),
           ),
@@ -346,11 +346,11 @@ class _RegisterPageState extends State<RegisterPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(28),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.96),
+                          color: Colors.white.withValues(alpha: 0.96),
                           borderRadius: BorderRadius.circular(32),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
+                              color: Colors.black.withValues(alpha: 0.15),
                               blurRadius: 40,
                               offset: const Offset(0, 20),
                             ),
@@ -461,7 +461,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF7132F5)
-                                    .withOpacity(0.08),
+                                    .withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Row(

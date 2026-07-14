@@ -190,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
                 height: 300,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.06),
+                  color: Colors.white.withValues(alpha: 0.06),
                 ),
               ),
             ),
@@ -202,7 +202,7 @@ class _LoginPageState extends State<LoginPage> {
                 height: 260,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.04),
+                  color: Colors.white.withValues(alpha: 0.04),
                 ),
               ),
             ),
@@ -235,7 +235,7 @@ class _LoginPageState extends State<LoginPage> {
                       Text(
                         'FROZEN FOOD',
                         style: GoogleFonts.poppins(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: isTablet ? 24 : 18,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5,
@@ -260,7 +260,7 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius: BorderRadius.circular(32),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 40,
                               offset: const Offset(0, 20),
                             ),

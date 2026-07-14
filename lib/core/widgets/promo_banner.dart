@@ -28,7 +28,7 @@ class PromoBanner extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6B3FBF).withOpacity(0.45),
+              color: const Color(0xFF6B3FBF).withValues(alpha: 0.45),
               blurRadius: 28,
               offset: const Offset(0, 10),
             ),
@@ -44,7 +44,7 @@ class PromoBanner extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -71,7 +71,7 @@ class PromoBanner extends StatelessWidget {
                   Text(
                     "Tanpa antri, praktis & hemat!",
                     style: GoogleFonts.inter(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 12.5,
                     ),
                   ),
@@ -105,9 +105,9 @@ class PromoBanner extends StatelessWidget {
                   height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       width: 1.5,
                     ),
                   ),
@@ -123,9 +123,9 @@ class PromoBanner extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       width: 1,
                     ),
                   ),

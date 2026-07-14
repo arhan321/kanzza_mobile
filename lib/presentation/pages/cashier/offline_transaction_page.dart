@@ -312,26 +312,6 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
     });
   }
 
-  void _increaseQuantity(_CashierCartItem cartItem) {
-    if (cartItem.quantity >= cartItem.product.stock) {
-      _showSnackBar(
-        'Jumlah sudah mencapai stok tersedia.',
-        Colors.orange.shade500,
-      );
-      return;
-    }
-
-    setState(() {
-      cartItem.quantity++;
-    });
-  }
-
-  void _removeCartItem(_CashierCartItem cartItem) {
-    setState(() {
-      _cartItems.remove(cartItem);
-    });
-  }
-
   void _clearCart() {
     setState(() {
       _cartItems.clear();
@@ -489,7 +469,7 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
+                  color: Colors.black.withValues(alpha: 0.25),
                   blurRadius: 30,
                   offset: const Offset(0, 12),
                 ),
@@ -503,7 +483,7 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
                     width: 78,
                     height: 78,
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.14),
+                      color: Colors.green.withValues(alpha: 0.14),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -762,7 +742,7 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -817,7 +797,7 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
             tooltip: 'Muat ulang produk',
             onPressed: _isLoadingProducts || _isRefreshing ? null : _refresh,
             style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF9B5EFF).withOpacity(0.12),
+              backgroundColor: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
               foregroundColor: const Color(0xFF9B5EFF),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -840,7 +820,7 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
               tooltip: 'Kosongkan keranjang',
               onPressed: _isSubmitting ? null : _clearCart,
               style: IconButton.styleFrom(
-                backgroundColor: Colors.red.withOpacity(0.10),
+                backgroundColor: Colors.red.withValues(alpha: 0.10),
                 foregroundColor: Colors.red.shade400,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1073,7 +1053,7 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
                 ? null
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -1203,7 +1183,7 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
       return Center(
         child: Icon(
           Icons.inventory_2_rounded,
-          color: const Color(0xFF9B5EFF).withOpacity(0.50),
+          color: const Color(0xFF9B5EFF).withValues(alpha: 0.50),
           size: 42,
         ),
       );
@@ -1216,7 +1196,7 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
         return Center(
           child: Icon(
             Icons.broken_image_outlined,
-            color: const Color(0xFF9B5EFF).withOpacity(0.50),
+            color: const Color(0xFF9B5EFF).withValues(alpha: 0.50),
             size: 42,
           ),
         );
@@ -1625,7 +1605,7 @@ class _OfflineTransactionPageState extends State<OfflineTransactionPage> {
         height: 29,
         decoration: BoxDecoration(
           color: isPrimary
-              ? const Color(0xFF9B5EFF).withOpacity(0.18)
+              ? const Color(0xFF9B5EFF).withValues(alpha: 0.18)
               : isDark
               ? const Color(0xFF2A2A3A)
               : const Color(0xFFE5E7EB),

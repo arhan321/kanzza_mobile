@@ -1,11 +1,10 @@
-// lib/features/owner/presentation/pages/owner_manage_role_page.dart
+import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'package:kanzza_sales_app_fe/core/theme/theme_provider.dart';
-import 'package:kanzza_sales_app_fe/routes.dart';
+
+import '../../../core/network/api_exception.dart';
+import '../../../data/models/user.dart';
+import '../../../data/repositories/owner_repository.dart';
 
 class OwnerManageRolePage extends StatefulWidget {
   const OwnerManageRolePage({super.key});
@@ -15,1072 +14,460 @@ class OwnerManageRolePage extends StatefulWidget {
 }
 
 class _OwnerManageRolePageState extends State<OwnerManageRolePage> {
-  // ==================== DATA DUMMY ====================
-  List<Map<String, dynamic>> _users = [
-    {'id': 1, 'name': 'Ahmad Fauzi', 'email': 'ahmad@kanzza.com', 'role': 'Owner', 'status': 'Aktif', 'joinDate': '01 Jan 2025'},
-    {'id': 2, 'name': 'Siti Rahma', 'email': 'siti@kanzza.com', 'role': 'Kasir', 'status': 'Aktif', 'joinDate': '15 Feb 2025'},
-    {'id': 3, 'name': 'Budi Santoso', 'email': 'budi@kanzza.com', 'role': 'Driver', 'status': 'Aktif', 'joinDate': '10 Mar 2025'},
-    {'id': 4, 'name': 'Dewi Lestari', 'email': 'dewi@kanzza.com', 'role': 'Kasir', 'status': 'Nonaktif', 'joinDate': '20 Apr 2025'},
-    {'id': 5, 'name': 'Rina Setiawan', 'email': 'rina@kanzza.com', 'role': 'Driver', 'status': 'Aktif', 'joinDate': '05 Mei 2025'},
-  ];
+  final OwnerRepository _repository = OwnerRepository();
+  final TextEditingController _searchController = TextEditingController();
 
-  final List<String> _roles = ['Owner', 'Kasir', 'Driver'];
-  final List<String> _statusOptions = ['Aktif', 'Nonaktif'];
+  final List<UserModel> _users = [];
+  Timer? _searchDebounce;
+  bool _isLoading = true;
+  int? _updatingUserId;
+  String? _errorMessage;
+  String? _roleFilter;
+  String? _statusFilter;
 
-  // ==================== STATE ====================
-  String _filterRole = 'Semua';
-  String _filterStatus = 'Semua';
-  String _searchQuery = '';
-
-  // ==================== FORM CONTROLLERS ====================
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  String _selectedRole = 'Kasir';
-  String _selectedStatus = 'Aktif';
-  bool _isLoading = false;
-
-  // ==================== GETTER ====================
-  List<Map<String, dynamic>> get _filteredUsers {
-    var filtered = List<Map<String, dynamic>>.from(_users);
-    if (_filterRole != 'Semua') {
-      filtered = filtered.where((u) => u['role'] == _filterRole).toList();
-    }
-    if (_filterStatus != 'Semua') {
-      filtered = filtered.where((u) => u['status'] == _filterStatus).toList();
-    }
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((u) =>
-          u['name'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          u['email'].toLowerCase().contains(_searchQuery.toLowerCase())).toList();
-    }
-    return filtered;
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
   }
 
-  int get _totalUsers => _users.length;
-  int get _activeUsers => _users.where((u) => u['status'] == 'Aktif').length;
-  int get _inactiveUsers => _users.where((u) => u['status'] == 'Nonaktif').length;
-
-  // ==================== FUNGSI ====================
-  void _showSnackBar(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: GoogleFonts.inter(color: Colors.white)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
-  void _resetFilters() {
-    setState(() {
-      _filterRole = 'Semua';
-      _filterStatus = 'Semua';
-      _searchQuery = '';
-    });
-  }
-
-  void _resetForm() {
-    _nameController.clear();
-    _emailController.clear();
-    _passwordController.clear();
-    _selectedRole = 'Kasir';
-    _selectedStatus = 'Aktif';
-  }
-
-  void _saveUser() {
-    // Validasi
-    if (_nameController.text.trim().isEmpty) {
-      _showSnackBar("Nama harus diisi!", Colors.orange);
-      return;
-    }
-    if (_emailController.text.trim().isEmpty) {
-      _showSnackBar("Email harus diisi!", Colors.orange);
-      return;
-    }
-    if (_passwordController.text.trim().isEmpty) {
-      _showSnackBar("Password harus diisi!", Colors.orange);
-      return;
-    }
-
+  Future<void> _loadUsers() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
-    // Simulasi simpan data
-    Future.delayed(const Duration(milliseconds: 500), () {
-      final newUser = {
-        'id': _users.length + 1,
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'role': _selectedRole,
-        'status': _selectedStatus,
-        'joinDate': DateTime.now().toString().substring(0, 10),
-      };
+    try {
+      final users = await _repository.getUsers(
+        search: _searchController.text,
+        role: _roleFilter,
+        status: _statusFilter,
+      );
 
+      if (!mounted) return;
       setState(() {
-        _users.insert(0, newUser);
+        _users
+          ..clear()
+          ..addAll(users);
         _isLoading = false;
       });
-
-      _resetForm();
-      Navigator.pop(context);
-      _showSnackBar("✅ User berhasil ditambahkan!", Colors.green);
-    });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error.firstValidationError;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Daftar pengguna gagal dimuat: $error';
+      });
+    }
   }
 
-  void _showAddUserDialog() {
-    _resetForm();
-    final isDark = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+  void _onSearchChanged(String _) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 450), _loadUsers);
+  }
 
-    showDialog(
+  Future<void> _updateRole(UserModel user, String role) async {
+    if (_updatingUserId != null || role == user.role) return;
+    setState(() => _updatingUserId = user.id);
+
+    try {
+      final updated = await _repository.updateUserRole(
+        userId: user.id,
+        role: role,
+      );
+      _replaceUser(updated);
+      _showMessage('Role ${user.name} berhasil diperbarui.');
+    } on ApiException catch (error) {
+      _showMessage(error.firstValidationError, isError: true);
+    } finally {
+      if (mounted) setState(() => _updatingUserId = null);
+    }
+  }
+
+  Future<void> _toggleStatus(UserModel user) async {
+    if (_updatingUserId != null || user.isOwner) return;
+    setState(() => _updatingUserId = user.id);
+
+    try {
+      final updated = await _repository.updateUserStatus(
+        userId: user.id,
+        status: user.isActive ? 'inactive' : 'active',
+      );
+      _replaceUser(updated);
+      _showMessage('Status ${user.name} berhasil diperbarui.');
+    } on ApiException catch (error) {
+      _showMessage(error.firstValidationError, isError: true);
+    } finally {
+      if (mounted) setState(() => _updatingUserId = null);
+    }
+  }
+
+  void _replaceUser(UserModel updated) {
+    if (!mounted) return;
+    final index = _users.indexWhere((item) => item.id == updated.id);
+    if (index >= 0) setState(() => _users[index] = updated);
+  }
+
+  Future<void> _showCreateStaffDialog() async {
+    final result = await showDialog<_StaffFormResult>(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF16162A) : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE8E8F0),
-            ),
-          ),
-          title: Text(
-            "Tambah User",
-            style: GoogleFonts.poppins(
-              color: isDark ? const Color(0xFFF0EAFF) : const Color(0xFF1F2937),
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setStateDialog) {
-              return SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Nama
-                    TextField(
-                      controller: _nameController,
-                      style: GoogleFonts.inter(
-                        color: isDark ? const Color(0xFFF0EAFF) : const Color(0xFF1F2937),
-                        fontSize: 14,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: "Nama Lengkap",
-                        labelStyle: GoogleFonts.inter(
-                          color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                        ),
-                        hintText: "Masukkan nama lengkap",
-                        hintStyle: GoogleFonts.inter(
-                          color: isDark ? const Color(0xFF5C5878) : const Color(0xFF9CA3AF),
-                        ),
-                        prefixIcon: Icon(Icons.person_outline,
-                          color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280)),
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF0D0D12) : Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0xFF9B5EFF), width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Email
-                    TextField(
-                      controller: _emailController,
-                      style: GoogleFonts.inter(
-                        color: isDark ? const Color(0xFFF0EAFF) : const Color(0xFF1F2937),
-                        fontSize: 14,
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: "Email",
-                        labelStyle: GoogleFonts.inter(
-                          color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                        ),
-                        hintText: "Masukkan email",
-                        hintStyle: GoogleFonts.inter(
-                          color: isDark ? const Color(0xFF5C5878) : const Color(0xFF9CA3AF),
-                        ),
-                        prefixIcon: Icon(Icons.email_outlined,
-                          color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280)),
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF0D0D12) : Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0xFF9B5EFF), width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Password
-                    TextField(
-                      controller: _passwordController,
-                      style: GoogleFonts.inter(
-                        color: isDark ? const Color(0xFFF0EAFF) : const Color(0xFF1F2937),
-                        fontSize: 14,
-                      ),
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: "Password",
-                        labelStyle: GoogleFonts.inter(
-                          color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                        ),
-                        hintText: "Masukkan password",
-                        hintStyle: GoogleFonts.inter(
-                          color: isDark ? const Color(0xFF5C5878) : const Color(0xFF9CA3AF),
-                        ),
-                        prefixIcon: Icon(Icons.lock_outline,
-                          color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280)),
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF0D0D12) : Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0xFF9B5EFF), width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Role & Status
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedRole,
-                            dropdownColor: isDark ? const Color(0xFF1E1E35) : Colors.white,
-                            style: GoogleFonts.inter(
-                              color: isDark ? const Color(0xFFF0EAFF) : const Color(0xFF1F2937),
-                              fontSize: 14,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: "Role",
-                              labelStyle: GoogleFonts.inter(
-                                color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                              ),
-                              filled: true,
-                              fillColor: isDark ? const Color(0xFF0D0D12) : Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Color(0xFF9B5EFF), width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            ),
-                            items: _roles.map((role) {
-                              return DropdownMenuItem(
-                                value: role,
-                                child: Text(role),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setStateDialog(() {
-                                  _selectedRole = value;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedStatus,
-                            dropdownColor: isDark ? const Color(0xFF1E1E35) : Colors.white,
-                            style: GoogleFonts.inter(
-                              color: isDark ? const Color(0xFFF0EAFF) : const Color(0xFF1F2937),
-                              fontSize: 14,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: "Status",
-                              labelStyle: GoogleFonts.inter(
-                                color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                              ),
-                              filled: true,
-                              fillColor: isDark ? const Color(0xFF0D0D12) : Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Color(0xFF9B5EFF), width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            ),
-                            items: _statusOptions.map((status) {
-                              return DropdownMenuItem(
-                                value: status,
-                                child: Text(status),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setStateDialog(() {
-                                  _selectedStatus = value;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _resetForm();
-                Navigator.pop(context);
-              },
-              child: Text(
-                "Batal",
-                style: GoogleFonts.inter(
-                  color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _saveUser,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9B5EFF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Text(
-                      "Simpan",
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-          ],
-          actionsPadding: const EdgeInsets.all(16),
-        );
-      },
+      builder: (_) => const _CreateStaffDialog(),
     );
+    if (result == null || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _repository.createStaff(
+        name: result.name,
+        email: result.email,
+        phone: result.phone,
+        password: result.password,
+        role: result.role,
+      );
+      _showMessage('Akun staff berhasil dibuat.');
+      await _loadUsers();
+    } on ApiException catch (error) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showMessage(error.firstValidationError, isError: true);
+      }
+    }
   }
 
-  // ==================== BUILD ====================
-  @override
-  Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = themeProvider.isDarkMode;
-    final theme = Theme.of(context);
-    final sw = MediaQuery.of(context).size.width;
-    final hPad = sw * 0.04;
-    final isTablet = sw > 600;
-
-    SystemChrome.setSystemUIOverlayStyle(
-      isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-    );
-
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [const Color(0xFF13102A), const Color(0xFF0D0D12)]
-                : [const Color(0xFFF5F5FA), const Color(0xFFE8E8F0)],
-          ),
-        ),
-        child: Column(
-          children: [
-            // HEADER
-            Container(
-              padding: EdgeInsets.only(
-                left: hPad,
-                right: hPad,
-                top: MediaQuery.of(context).padding.top + 16,
-                bottom: 16,
-              ),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF13102A) : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark ? Colors.black12 : Colors.black12,
-                    blurRadius: isDark ? 0 : 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-                border: isDark
-                    ? const Border(bottom: BorderSide(color: Color(0xFF1E1E35)))
-                    : null,
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      } else {
-                        Navigator.pushReplacementNamed(
-                          context,
-                          AppRoutes.ownerDashboard,
-                        );
-                      }
-                    },
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF16162A)
-                            : const Color(0xFFF5F5FA),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isDark
-                              ? const Color(0xFF1E1E35)
-                              : const Color(0xFFE8E8F0),
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_rounded,
-                        color: isDark
-                            ? const Color(0xFFF0EAFF)
-                            : const Color(0xFF1F2937),
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      "Manajemen User",
-                      style: GoogleFonts.poppins(
-                        color: isDark
-                            ? const Color(0xFFF0EAFF)
-                            : const Color(0xFF1F2937),
-                        fontSize: isTablet ? 26 : 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  // Tombol Tambah User
-                  GestureDetector(
-                    onTap: _showAddUserDialog,
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF9B5EFF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // CONTENT
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Summary Cards
-                    _buildSummaryCards(isDark),
-                    const SizedBox(height: 16),
-
-                    // Filter & Search
-                    _buildFilterSection(isDark),
-                    const SizedBox(height: 16),
-
-                    // User List
-                    _buildUserList(isDark),
-                    const SizedBox(height: 30),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
       ),
     );
   }
 
-  // ==================== SUMMARY CARDS ====================
-  Widget _buildSummaryCards(bool isDark) {
-    final theme = Theme.of(context);
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Manajemen User'),
+        actions: [
+          IconButton(
+            tooltip: 'Tambah staff',
+            onPressed: _isLoading ? null : _showCreateStaffDialog,
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search_rounded),
+                hintText: 'Cari nama atau email',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                _FilterMenu(
+                  label: 'Role',
+                  value: _roleFilter,
+                  values: const ['customer', 'cashier', 'driver', 'owner'],
+                  onChanged: (value) {
+                    setState(() => _roleFilter = value);
+                    _loadUsers();
+                  },
+                ),
+                const SizedBox(width: 8),
+                _FilterMenu(
+                  label: 'Status',
+                  value: _statusFilter,
+                  values: const ['active', 'inactive'],
+                  onChanged: (value) {
+                    setState(() => _statusFilter = value);
+                    _loadUsers();
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(child: _buildBody()),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _isLoading ? null : _showCreateStaffDialog,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Tambah Staff'),
+      ),
+    );
+  }
 
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.cardTheme.color,
-              borderRadius: BorderRadius.circular(12),
-              border: isDark ? Border.all(color: const Color(0xFF1E1E35)) : null,
-              boxShadow: isDark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Total User",
-                  style: GoogleFonts.inter(
-                    color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                    fontSize: 10,
-                  ),
+  Widget _buildBody() {
+    if (_isLoading && _users.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_errorMessage != null && _users.isEmpty) {
+      return Center(
+        child: FilledButton.icon(
+          onPressed: _loadUsers,
+          icon: const Icon(Icons.refresh_rounded),
+          label: Text(_errorMessage!),
+        ),
+      );
+    }
+    if (_users.isEmpty) {
+      return const Center(child: Text('Pengguna tidak ditemukan.'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadUsers,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
+        itemCount: _users.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 6),
+        itemBuilder: (context, index) {
+          final user = _users[index];
+          final updating = _updatingUserId == user.id;
+          return Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                child: Text(
+                  user.name.trim().isEmpty
+                      ? '?'
+                      : user.name.trim()[0].toUpperCase(),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _totalUsers.toString(),
-                  style: GoogleFonts.poppins(
-                    color: theme.textTheme.titleLarge?.color,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+              ),
+              title: Text(user.name),
+              subtitle: Text(
+                '${user.email}\n${_roleLabel(user.role)} • ${user.isActive ? 'Aktif' : 'Nonaktif'}',
+              ),
+              isThreeLine: true,
+              trailing: updating
+                  ? const SizedBox.square(
+                      dimension: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : PopupMenuButton<String>(
+                      onSelected: (action) {
+                        if (action == 'toggle') {
+                          _toggleStatus(user);
+                        } else {
+                          _updateRole(user, action);
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        if (!user.isOwner) ...[
+                          const PopupMenuItem(
+                            value: 'cashier',
+                            child: Text('Jadikan Kasir'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'driver',
+                            child: Text('Jadikan Driver'),
+                          ),
+                          PopupMenuItem(
+                            value: 'toggle',
+                            child: Text(
+                              user.isActive ? 'Nonaktifkan' : 'Aktifkan',
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _roleLabel(String role) {
+    switch (role) {
+      case 'cashier':
+        return 'Kasir';
+      case 'driver':
+        return 'Driver';
+      case 'owner':
+        return 'Owner';
+      default:
+        return 'Customer';
+    }
+  }
+}
+
+class _FilterMenu extends StatelessWidget {
+  const _FilterMenu({
+    required this.label,
+    required this.value,
+    required this.values,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String? value;
+  final List<String> values;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButton<String?>(
+      value: value,
+      hint: Text('Semua $label'),
+      items: [
+        DropdownMenuItem<String?>(value: null, child: Text('Semua $label')),
+        ...values.map(
+          (item) => DropdownMenuItem(value: item, child: Text(item)),
+        ),
+      ],
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _StaffFormResult {
+  const _StaffFormResult({
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.password,
+    required this.role,
+  });
+
+  final String name;
+  final String email;
+  final String phone;
+  final String password;
+  final String role;
+}
+
+class _CreateStaffDialog extends StatefulWidget {
+  const _CreateStaffDialog();
+
+  @override
+  State<_CreateStaffDialog> createState() => _CreateStaffDialogState();
+}
+
+class _CreateStaffDialogState extends State<_CreateStaffDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _phone = TextEditingController();
+  final _password = TextEditingController();
+  String _role = 'cashier';
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Tambah Staff'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _name,
+                decoration: const InputDecoration(labelText: 'Nama'),
+                validator: _required,
+              ),
+              TextFormField(
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Email'),
+                validator: (value) {
+                  if (value == null || !value.contains('@')) {
+                    return 'Email belum valid.';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _phone,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Nomor telepon (opsional)',
+                ),
+              ),
+              TextFormField(
+                controller: _password,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password'),
+                validator: (value) {
+                  if ((value ?? '').length < 6) {
+                    return 'Password minimal 6 karakter.';
+                  }
+                  return null;
+                },
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: _role,
+                decoration: const InputDecoration(labelText: 'Role'),
+                items: const [
+                  DropdownMenuItem(value: 'cashier', child: Text('Kasir')),
+                  DropdownMenuItem(value: 'driver', child: Text('Driver')),
+                ],
+                onChanged: (value) =>
+                    setState(() => _role = value ?? 'cashier'),
+              ),
+            ],
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.cardTheme.color,
-              borderRadius: BorderRadius.circular(12),
-              border: isDark ? Border.all(color: const Color(0xFF1E1E35)) : null,
-              boxShadow: isDark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Aktif",
-                  style: GoogleFonts.inter(
-                    color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                    fontSize: 10,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _activeUsers.toString(),
-                  style: GoogleFonts.poppins(
-                    color: Colors.green.shade400,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Batal'),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.cardTheme.color,
-              borderRadius: BorderRadius.circular(12),
-              border: isDark ? Border.all(color: const Color(0xFF1E1E35)) : null,
-              boxShadow: isDark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Nonaktif",
-                  style: GoogleFonts.inter(
-                    color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                    fontSize: 10,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _inactiveUsers.toString(),
-                  style: GoogleFonts.poppins(
-                    color: Colors.red.shade400,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        FilledButton(
+          onPressed: () {
+            if (_formKey.currentState?.validate() != true) return;
+            Navigator.pop(
+              context,
+              _StaffFormResult(
+                name: _name.text.trim(),
+                email: _email.text.trim(),
+                phone: _phone.text.trim(),
+                password: _password.text,
+                role: _role,
+              ),
+            );
+          },
+          child: const Text('Simpan'),
         ),
       ],
     );
   }
 
-  // ==================== FILTER SECTION ====================
-  Widget _buildFilterSection(bool isDark) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(12),
-        border: isDark ? Border.all(color: const Color(0xFF1E1E35)) : null,
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Search Bar
-          TextField(
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
-            style: GoogleFonts.inter(
-              color: isDark ? const Color(0xFFF0EAFF) : const Color(0xFF1F2937),
-              fontSize: 14,
-            ),
-            decoration: InputDecoration(
-              hintText: "Cari user...",
-              hintStyle: GoogleFonts.inter(
-                color: isDark ? const Color(0xFF5C5878) : const Color(0xFF9CA3AF),
-                fontSize: 14,
-              ),
-              prefixIcon: Icon(
-                Icons.search,
-                color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                size: 20,
-              ),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _searchQuery = '';
-                        });
-                      },
-                      icon: Icon(
-                        Icons.close,
-                        color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                        size: 20,
-                      ),
-                    )
-                  : null,
-              filled: true,
-              fillColor: isDark ? const Color(0xFF16162A) : Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF9B5EFF), width: 1),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Filter Role & Status
-          Row(
-            children: [
-              Expanded(
-                child: _buildFilterDropdown(
-                  label: "Role",
-                  value: _filterRole,
-                  items: ['Semua', 'Owner', 'Kasir', 'Driver'],
-                  onChanged: (value) {
-                    setState(() {
-                      _filterRole = value!;
-                    });
-                  },
-                  isDark: isDark,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildFilterDropdown(
-                  label: "Status",
-                  value: _filterStatus,
-                  items: ['Semua', 'Aktif', 'Nonaktif'],
-                  onChanged: (value) {
-                    setState(() {
-                      _filterStatus = value!;
-                    });
-                  },
-                  isDark: isDark,
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _resetFilters,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF16162A) : Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.refresh,
-                    color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required Function(String?) onChanged,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF16162A) : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          dropdownColor: isDark ? const Color(0xFF1E1E35) : Colors.white,
-          style: GoogleFonts.inter(
-            color: isDark ? const Color(0xFFF0EAFF) : const Color(0xFF1F2937),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-          icon: Icon(
-            Icons.arrow_drop_down,
-            color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-          ),
-          isExpanded: true,
-          hint: Text(
-            label,
-            style: GoogleFonts.inter(
-              color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-              fontSize: 13,
-            ),
-          ),
-          items: items.map((item) {
-            return DropdownMenuItem(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-
-  // ==================== USER LIST ====================
-  Widget _buildUserList(bool isDark) {
-    final theme = Theme.of(context);
-    final users = _filteredUsers;
-
-    if (users.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        alignment: Alignment.center,
-        child: Column(
-          children: [
-            Icon(
-              Icons.people_outline,
-              color: isDark ? const Color(0xFF5C5878) : const Color(0xFF9CA3AF),
-              size: 48,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Tidak ada user",
-              style: GoogleFonts.inter(
-                color: isDark ? const Color(0xFF9B97B8) : const Color(0xFF6B7280),
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "Klik + untuk menambahkan user",
-              style: GoogleFonts.inter(
-                color: isDark ? const Color(0xFF5C5878) : const Color(0xFF9CA3AF),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: users.length,
-      itemBuilder: (context, index) {
-        final user = users[index];
-        final isActive = user['status'] == 'Aktif';
-        final roleColor = user['role'] == 'Owner'
-            ? const Color(0xFF9B5EFF)
-            : user['role'] == 'Kasir'
-                ? const Color(0xFF4CAF50)
-                : const Color(0xFFFF9800);
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.cardTheme.color,
-            borderRadius: BorderRadius.circular(12),
-            border: isDark ? Border.all(color: const Color(0xFF1E1E35)) : null,
-            boxShadow: isDark
-                ? null
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-          ),
-          child: Row(
-            children: [
-              // Avatar
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: roleColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Text(
-                    user['name'][0].toUpperCase(),
-                    style: GoogleFonts.inter(
-                      color: roleColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user['name'],
-                      style: GoogleFonts.inter(
-                        color: theme.textTheme.titleLarge?.color,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          user['email'],
-                          style: GoogleFonts.inter(
-                            color: theme.textTheme.bodySmall?.color,
-                            fontSize: 11,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: roleColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: roleColor.withOpacity(0.2),
-                            ),
-                          ),
-                          child: Text(
-                            user['role'],
-                            style: GoogleFonts.inter(
-                              color: roleColor,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      "Bergabung: ${user['joinDate']}",
-                      style: GoogleFonts.inter(
-                        color: theme.textTheme.bodySmall?.color,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Status Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? Colors.green.withOpacity(0.15)
-                      : Colors.red.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: isActive
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.red.withOpacity(0.2),
-                  ),
-                ),
-                child: Text(
-                  user['status'],
-                  style: GoogleFonts.inter(
-                    color: isActive ? Colors.green.shade400 : Colors.red.shade400,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  String? _required(String? value) {
+    return value == null || value.trim().isEmpty ? 'Wajib diisi.' : null;
   }
 }

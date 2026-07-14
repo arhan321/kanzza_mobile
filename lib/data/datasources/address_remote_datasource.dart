@@ -46,8 +46,8 @@ class AddressRemoteDataSource {
         if (postalCode != null &&
             postalCode.trim().isNotEmpty)
           'postal_code': postalCode.trim(),
-        if (latitude != null) 'latitude': latitude,
-        if (longitude != null) 'longitude': longitude,
+        'latitude': ?latitude,
+        'longitude': ?longitude,
         'is_default': isDefault,
       },
     );
