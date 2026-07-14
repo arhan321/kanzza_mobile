@@ -278,6 +278,9 @@ class DriverDeliveryModel {
   final DateTime? assignedAt;
   final DateTime? pickedUpAt;
   final DateTime? deliveredAt;
+  final bool codPaymentReceived;
+  final DateTime? codPaymentReceivedAt;
+  final UserModel? codPaymentReceivedBy;
   final String? proofImage;
   final String? notes;
   final DriverDeliveryOrderModel? order;
@@ -292,6 +295,9 @@ class DriverDeliveryModel {
     this.assignedAt,
     this.pickedUpAt,
     this.deliveredAt,
+    this.codPaymentReceived = false,
+    this.codPaymentReceivedAt,
+    this.codPaymentReceivedBy,
     this.proofImage,
     this.notes,
     this.order,
@@ -303,6 +309,8 @@ class DriverDeliveryModel {
     Map<String, dynamic> json,
   ) {
     final rawDriver = json['driver'];
+    final rawCodPaymentReceiver =
+        json['cod_payment_received_by'];
     final rawOrder = json['order'];
 
     return DriverDeliveryModel(
@@ -319,6 +327,15 @@ class DriverDeliveryModel {
       assignedAt: _parseDateTime(json['assigned_at']),
       pickedUpAt: _parseDateTime(json['picked_up_at']),
       deliveredAt: _parseDateTime(json['delivered_at']),
+      codPaymentReceived:
+          json['cod_payment_received'] == true,
+      codPaymentReceivedAt:
+          _parseDateTime(json['cod_payment_received_at']),
+      codPaymentReceivedBy: rawCodPaymentReceiver is Map
+          ? UserModel.fromJson(
+              Map<String, dynamic>.from(rawCodPaymentReceiver),
+            )
+          : null,
       proofImage: _nullableString(json['proof_image']),
       notes: _nullableString(json['notes']),
       order: rawOrder is Map

@@ -1242,6 +1242,7 @@ class _DriverDashboardPageState
       delivery: delivery,
       nextStatus: nextStatus,
       notes: result.notes,
+      paymentReceived: result.paymentReceived,
     );
   }
 
@@ -1259,6 +1260,12 @@ class _DriverDashboardPageState
       context,
       listen: false,
     ).isDarkMode;
+    final requiresCodConfirmation =
+        nextStatus == 'delivered' &&
+        delivery.order?.paymentMethod?.toLowerCase() ==
+            'cash';
+    final paymentReceivedNotifier =
+        ValueNotifier<bool>(false);
 
     return showDialog<_StatusUpdateResult>(
       context: context,
@@ -1300,6 +1307,70 @@ class _DriverDashboardPageState
                     height: 1.5,
                   ),
                 ),
+                if (requiresCodConfirmation) ...[
+                  const SizedBox(height: 13),
+                  ValueListenableBuilder<bool>(
+                    valueListenable:
+                        paymentReceivedNotifier,
+                    builder: (
+                      context,
+                      paymentReceived,
+                      child,
+                    ) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: paymentReceived
+                              ? Colors.green
+                                  .withOpacity(0.09)
+                              : Colors.orange
+                                  .withOpacity(0.09),
+                          borderRadius:
+                              BorderRadius.circular(12),
+                          border: Border.all(
+                            color: paymentReceived
+                                ? Colors.green.shade400
+                                : Colors.orange.shade400,
+                          ),
+                        ),
+                        child: CheckboxListTile(
+                          value: paymentReceived,
+                          onChanged: (value) {
+                            paymentReceivedNotifier
+                                .value = value ?? false;
+                          },
+                          controlAffinity:
+                              ListTileControlAffinity
+                                  .leading,
+                          activeColor:
+                              Colors.green.shade600,
+                          title: Text(
+                            'Pesanan sudah tiba dan pembayaran COD sudah diterima',
+                            style: GoogleFonts.inter(
+                              color: theme
+                                  .textTheme
+                                  .titleLarge
+                                  ?.color,
+                              fontSize: 12,
+                              fontWeight:
+                                  FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Pastikan uang tunai Rp ${_formatPrice(delivery.order?.grandTotal ?? 0)} sudah diterima.',
+                            style: GoogleFonts.inter(
+                              color: theme
+                                  .textTheme
+                                  .bodySmall
+                                  ?.color,
+                              fontSize: 10,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
                 const SizedBox(height: 13),
                 TextField(
                   controller: notesController,
@@ -1373,35 +1444,58 @@ class _DriverDashboardPageState
               },
               child: const Text('Batal'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  _StatusUpdateResult(
-                    notes:
-                        notesController.text.trim(),
+            ValueListenableBuilder<bool>(
+              valueListenable: paymentReceivedNotifier,
+              builder: (
+                context,
+                paymentReceived,
+                child,
+              ) {
+                return ElevatedButton(
+                  onPressed: requiresCodConfirmation &&
+                          !paymentReceived
+                      ? null
+                      : () {
+                          Navigator.pop(
+                            dialogContext,
+                            _StatusUpdateResult(
+                              notes: notesController
+                                  .text
+                                  .trim(),
+                              paymentReceived:
+                                  requiresCodConfirmation
+                                      ? true
+                                      : null,
+                            ),
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        const Color(0xFF9B5EFF),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(
+                    requiresCodConfirmation
+                        ? 'Konfirmasi COD'
+                        : 'Konfirmasi',
                   ),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    const Color(0xFF9B5EFF),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text(
-                'Konfirmasi',
-              ),
             ),
           ],
         );
       },
-    ).whenComplete(notesController.dispose);
+    ).whenComplete(() {
+      notesController.dispose();
+      paymentReceivedNotifier.dispose();
+    });
   }
 
   Future<void> _updateDeliveryStatus({
     required DriverDeliveryModel delivery,
     required String nextStatus,
     required String notes,
+    bool? paymentReceived,
   }) async {
     setState(() {
       _processingDeliveryId = delivery.id;
@@ -1414,6 +1508,7 @@ class _DriverDashboardPageState
         deliveryId: delivery.id,
         status: nextStatus,
         notes: notes,
+        paymentReceived: paymentReceived,
       );
 
       if (!mounted) {
@@ -2728,8 +2823,10 @@ class _DriverStat {
 
 class _StatusUpdateResult {
   final String notes;
+  final bool? paymentReceived;
 
   const _StatusUpdateResult({
     required this.notes,
+    this.paymentReceived,
   });
 }

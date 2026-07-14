@@ -36,6 +36,7 @@ class DriverDeliveryRemoteDataSource {
     required String status,
     String? notes,
     String? proofImagePath,
+    bool? paymentReceived,
   }) {
     return _apiClient.patch(
       ApiEndpoints.updateDriverDeliveryStatus(
@@ -48,6 +49,8 @@ class DriverDeliveryRemoteDataSource {
         if (proofImagePath != null &&
             proofImagePath.trim().isNotEmpty)
           'proof_image_path': proofImagePath.trim(),
+        if (paymentReceived != null)
+          'payment_received': paymentReceived,
       },
     );
   }

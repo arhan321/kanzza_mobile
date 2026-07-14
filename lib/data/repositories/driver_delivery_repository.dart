@@ -78,6 +78,7 @@ class DriverDeliveryRepository {
     required String status,
     String? notes,
     String? proofImagePath,
+    bool? paymentReceived,
   }) async {
     final allowedStatuses = <String>{
       'picked_up',
@@ -98,6 +99,7 @@ class DriverDeliveryRepository {
       status: status,
       notes: notes,
       proofImagePath: proofImagePath,
+      paymentReceived: paymentReceived,
     );
 
     final data = response.dataAsMap;
