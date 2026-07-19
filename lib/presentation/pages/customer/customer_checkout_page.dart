@@ -1,5 +1,7 @@
 // lib/presentation/pages/customer/customer_checkout_page.dart
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,6 +24,7 @@ import '../../../data/repositories/address_repository.dart';
 import '../../../data/repositories/customer_order_repository.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../routes.dart';
+import '../../providers/customer_notification_provider.dart';
 import 'midtrans_payment_page.dart';
 
 class CustomerCheckoutPage extends StatefulWidget {
@@ -700,6 +703,8 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
         return;
       }
 
+      _refreshNotificationBadge();
+
       if (_deliveryMethod == 'delivery' &&
           createdOrder.shippingCost != _shippingCost) {
         await _orderRepository.cancelOrder(createdOrder.id);
@@ -824,6 +829,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
 
     try {
       result = await _orderRepository.checkPaymentStatus(order.id);
+      _refreshNotificationBadge();
     } on ApiException catch (error) {
       checkError = error.firstValidationError;
     } catch (error) {
@@ -854,6 +860,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
         try {
           result = await _orderRepository.checkPaymentStatus(order.id);
           checkError = null;
+          _refreshNotificationBadge();
         } on ApiException catch (error) {
           checkError = error.firstValidationError;
         } catch (error) {
@@ -872,6 +879,18 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
       Navigator.pop(context, true);
       return;
     }
+  }
+
+  void _refreshNotificationBadge() {
+    if (!mounted) {
+      return;
+    }
+
+    unawaited(
+      context
+          .read<CustomerNotificationProvider>()
+          .refreshUnreadCount(),
+    );
   }
 
   Future<_PaymentDialogAction?> _showPaymentResultDialog({

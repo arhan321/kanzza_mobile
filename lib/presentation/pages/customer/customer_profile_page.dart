@@ -14,6 +14,7 @@ import '../../../data/repositories/address_repository.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../routes.dart';
 import '../../providers/customer_cart_provider.dart';
+import '../../providers/customer_notification_provider.dart';
 import 'customer_addresses_page.dart';
 import 'customer_cart_page.dart';
 import 'customer_orders_page.dart';
@@ -116,6 +117,8 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     if (!mounted) {
       return;
     }
+
+    context.read<CustomerNotificationProvider>().clear();
 
     Navigator.of(
       context,
@@ -234,6 +237,8 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     if (!mounted) {
       return;
     }
+
+    context.read<CustomerNotificationProvider>().clear();
 
     Navigator.of(
       context,

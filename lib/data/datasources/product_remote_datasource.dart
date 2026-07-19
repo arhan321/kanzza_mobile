@@ -38,6 +38,33 @@ class ProductRemoteDataSource {
     return _apiClient.get(ApiEndpoints.productDetail(productId));
   }
 
+  Future<ApiResponse> createCashierProduct({
+    required Map<String, dynamic> fields,
+    String? imagePath,
+  }) {
+    return _apiClient.postMultipart(
+      ApiEndpoints.cashierProducts,
+      fields: fields,
+      filePaths: imagePath == null ? null : {'image': imagePath},
+    );
+  }
+
+  Future<ApiResponse> updateCashierProduct({
+    required int productId,
+    required Map<String, dynamic> fields,
+    String? imagePath,
+  }) {
+    return _apiClient.postMultipart(
+      ApiEndpoints.cashierProductDetail(productId),
+      fields: fields,
+      filePaths: imagePath == null ? null : {'image': imagePath},
+    );
+  }
+
+  Future<ApiResponse> deleteCashierProduct(int productId) {
+    return _apiClient.delete(ApiEndpoints.cashierProductDetail(productId));
+  }
+
   Future<ApiResponse> createOwnerProduct({
     required Map<String, dynamic> fields,
     String? imagePath,

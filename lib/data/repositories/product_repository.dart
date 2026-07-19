@@ -72,6 +72,30 @@ class ProductRepository {
     }
   }
 
+  Future<ProductModel> createCashierProduct(OwnerProductInput input) async {
+    final response = await _remoteDataSource.createCashierProduct(
+      fields: input.toMultipartFields(),
+      imagePath: input.imagePath,
+    );
+    return _parseProduct(response.dataAsMap, 'Produk baru');
+  }
+
+  Future<ProductModel> updateCashierProduct({
+    required int productId,
+    required OwnerProductInput input,
+  }) async {
+    final response = await _remoteDataSource.updateCashierProduct(
+      productId: productId,
+      fields: input.toMultipartFields(),
+      imagePath: input.imagePath,
+    );
+    return _parseProduct(response.dataAsMap, 'Produk yang diperbarui');
+  }
+
+  Future<void> deleteCashierProduct(int productId) async {
+    await _remoteDataSource.deleteCashierProduct(productId);
+  }
+
   Future<ProductModel> createOwnerProduct(OwnerProductInput input) async {
     final response = await _remoteDataSource.createOwnerProduct(
       fields: input.toMultipartFields(),

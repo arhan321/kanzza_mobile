@@ -17,9 +17,13 @@ class ApiEndpoints {
   // Customer
   static const String addresses = '/addresses';
   static const String orders = '/orders';
+  static const String notifications = '/notifications';
+  static const String notificationUnreadCount = '/notifications/unread-count';
+  static const String markAllNotificationsAsRead = '/notifications/read-all';
 
   // Cashier
   static const String cashierTransactions = '/cashier/transactions';
+  static const String cashierProducts = '/cashier/products';
 
   // Driver
   static const String driverDeliveries = '/driver/deliveries';
@@ -58,6 +62,10 @@ class ApiEndpoints {
     return '/orders/$orderId/cancel';
   }
 
+  static String markNotificationAsRead(int notificationId) {
+    return '/notifications/$notificationId/read';
+  }
+
   static String updateOrderStatus(int orderId) {
     return '/orders/$orderId/status';
   }
@@ -68,6 +76,10 @@ class ApiEndpoints {
 
   static String cashierTransactionDetail(int transactionId) {
     return '/cashier/transactions/$transactionId';
+  }
+
+  static String cashierProductDetail(int productId) {
+    return '/cashier/products/$productId';
   }
 
   static String driverDeliveryDetail(int deliveryId) {

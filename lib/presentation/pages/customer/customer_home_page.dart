@@ -1,5 +1,7 @@
 // lib/presentation/pages/customer/customer_home_page.dart
 
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,7 +20,9 @@ import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../routes.dart';
 import '../../providers/customer_cart_provider.dart';
+import '../../providers/customer_notification_provider.dart';
 import 'customer_cart_page.dart';
+import 'customer_notifications_page.dart';
 import 'customer_orders_page.dart';
 import 'customer_profile_page.dart';
 
@@ -29,10 +33,12 @@ class CustomerHomePage extends StatefulWidget {
   State<CustomerHomePage> createState() => _CustomerHomePageState();
 }
 
-class _CustomerHomePageState extends State<CustomerHomePage> {
+class _CustomerHomePageState extends State<CustomerHomePage>
+    with WidgetsBindingObserver {
   final ProductRepository _productRepository = ProductRepository();
   final UserRepository _userRepository = UserRepository();
   final ScrollController _scrollController = ScrollController();
+  Timer? _notificationTimer;
 
   final List<CategoryModel> _categories = [];
   final List<ProductModel> _allProducts = [];
@@ -48,16 +54,36 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializePage();
+    });
+
+    _notificationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) {
+        unawaited(
+          context.read<CustomerNotificationProvider>().refreshUnreadCount(),
+        );
+      }
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notificationTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      unawaited(
+        context.read<CustomerNotificationProvider>().refreshUnreadCount(),
+      );
+    }
   }
 
   Future<void> _initializePage() async {
@@ -66,6 +92,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     } catch (error) {
       debugPrint('INITIALIZE CUSTOMER CART ERROR: $error');
     }
+
+    await context.read<CustomerNotificationProvider>().refreshUnreadCount();
 
     if (!mounted) {
       return;
@@ -165,6 +193,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       return;
     }
 
+    context.read<CustomerNotificationProvider>().clear();
+
     Navigator.of(
       context,
     ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
@@ -175,7 +205,21 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       return;
     }
 
-    await _loadCatalog(isRefresh: true);
+    await Future.wait<void>([
+      _loadCatalog(isRefresh: true),
+      context.read<CustomerNotificationProvider>().refreshUnreadCount(),
+    ]);
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const CustomerNotificationsPage()),
+    );
+
+    if (mounted) {
+      await context.read<CustomerNotificationProvider>().refreshUnreadCount();
+    }
   }
 
   List<ProductModel> get _filteredProducts {
@@ -511,6 +555,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final cartProvider = context.watch<CustomerCartProvider>();
+    final notificationProvider = context.watch<CustomerNotificationProvider>();
     final isDark = themeProvider.isDarkMode;
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
@@ -543,6 +588,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                   horizontalPadding: horizontalPadding,
                   isDark: isDark,
                   isTablet: isTablet,
+                  notificationCount: notificationProvider.unreadCount,
                 ),
               ),
               Stack(
@@ -593,6 +639,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     required double horizontalPadding,
     required bool isDark,
     required bool isTablet,
+    required int notificationCount,
   }) {
     if (_isLoading) {
       return const Center(
@@ -621,7 +668,11 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  Header(isDark: isDark),
+                  Header(
+                    isDark: isDark,
+                    notificationCount: notificationCount,
+                    onNotificationTap: _openNotifications,
+                  ),
                   const SizedBox(height: 20),
                   SearchBar(
                     onSearchChanged: (query) {

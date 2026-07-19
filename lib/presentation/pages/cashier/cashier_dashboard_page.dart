@@ -43,9 +43,9 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
       route: AppRoutes.offlineTransaction,
     ),
     _CashierMenuItem(
-      title: 'Daftar Produk',
-      subtitle: 'Lihat harga dan stok',
-      icon: Icons.inventory_2_outlined,
+      title: 'Kelola Produk',
+      subtitle: 'Tambah, ubah harga dan stok',
+      icon: Icons.edit_note_rounded,
       color: Color(0xFF4CAF50),
       route: AppRoutes.cashierProducts,
     ),

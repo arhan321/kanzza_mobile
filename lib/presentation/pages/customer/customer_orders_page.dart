@@ -1,5 +1,7 @@
 // lib/presentation/pages/customer/customer_orders_page.dart
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,6 +18,7 @@ import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../routes.dart';
 import '../../providers/customer_cart_provider.dart';
+import '../../providers/customer_notification_provider.dart';
 import 'customer_cart_page.dart';
 import 'midtrans_payment_page.dart';
 
@@ -606,7 +609,7 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
         return;
       }
 
-      await Navigator.push<bool>(
+      final shouldCheckPayment = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
           builder: (_) => MidtransPaymentPage(
@@ -617,6 +620,11 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       );
 
       if (!mounted) {
+        return;
+      }
+
+      if (shouldCheckPayment != true) {
+        await _loadOrders(isRefresh: true);
         return;
       }
 
@@ -667,6 +675,10 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       if (!mounted) {
         return;
       }
+
+      unawaited(
+        context.read<CustomerNotificationProvider>().refreshUnreadCount(),
+      );
 
       if (showResultDialog) {
         await _showPaymentStatusDialog(order: order, result: result);
@@ -1429,6 +1441,10 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
     return DateFormat('dd MMM yyyy, HH:mm').format(date.toLocal());
   }
 
+  String _formatOrderDate(DateTime date) {
+    return DateFormat('dd MMM yyyy').format(date.toLocal());
+  }
+
   String _orderStatusLabel(CustomerOrderModel order) {
     if (order.canCustomerPayOnline) {
       return 'Menunggu Bayar';
@@ -1542,8 +1558,10 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
     final isDark = themeProvider.isDarkMode;
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
-    final horizontalPadding = screenWidth * 0.04;
     final isTablet = screenWidth > 600;
+    final horizontalPadding = screenWidth > 720
+        ? (screenWidth - 680) / 2
+        : 18.0;
 
     SystemChrome.setSystemUIOverlayStyle(
       isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
@@ -1559,8 +1577,8 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDark
-                ? const [Color(0xFF13102A), Color(0xFF0D0D12)]
-                : const [Color(0xFFF5F5FA), Color(0xFFE8E8F0)],
+                ? const [Color(0xFF11101F), Color(0xFF0D0D12)]
+                : const [Color(0xFFF8F7FC), Color(0xFFF1F0F7)],
           ),
         ),
         child: SafeArea(
@@ -1580,7 +1598,6 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
                   horizontalPadding: horizontalPadding,
                   isDark: isDark,
                 ),
-              const SizedBox(height: 8),
               Expanded(
                 child: _buildBody(
                   horizontalPadding: horizontalPadding,
@@ -1600,51 +1617,58 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
     required bool isTablet,
   }) {
     final theme = Theme.of(context);
+    final hasDateFilter = _filterStartDate != null || _filterEndDate != null;
+    final totalText = _selectedFilter == _OrderFilter.all && !hasDateFilter
+        ? '${_orders.length} pesanan'
+        : '${_filteredOrders.length} pesanan ditemukan';
 
     return Container(
       padding: EdgeInsets.fromLTRB(
         horizontalPadding,
-        14,
-        horizontalPadding,
         12,
+        horizontalPadding,
+        18,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF13102A) : Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
-          ),
-        ),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        color: isDark ? const Color(0xFF11101F) : const Color(0xFFF8F7FC),
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () {
-              Navigator.maybePop(context);
-            },
-            style: IconButton.styleFrom(
-              backgroundColor: isDark
-                  ? const Color(0xFF16162A)
-                  : const Color(0xFFF5F5FA),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF19182B) : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF29273E)
+                    : const Color(0xFFE8E6EF),
+              ),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: const Color(0xFF29233B).withValues(alpha: 0.05),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+            ),
+            child: IconButton(
+              tooltip: 'Kembali',
+              onPressed: () {
+                Navigator.maybePop(context);
+              },
+              padding: EdgeInsets.zero,
+              icon: Icon(
+                Icons.arrow_back_rounded,
+                color: theme.textTheme.titleLarge?.color,
+                size: 23,
               ),
             ),
-            icon: Icon(
-              Icons.arrow_back_rounded,
-              color: theme.textTheme.titleLarge?.color,
-            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1653,58 +1677,78 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
                   'Pesanan Saya',
                   style: GoogleFonts.poppins(
                     color: theme.textTheme.titleLarge?.color,
-                    fontSize: isTablet ? 24 : 19,
-                    fontWeight: FontWeight.w700,
+                    fontSize: isTablet ? 24 : 20,
+                    fontWeight: FontWeight.w800,
+                    height: 1.15,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
-                  '${_filteredOrders.length} dari ${_orders.length} pesanan',
+                  totalText,
                   style: GoogleFonts.inter(
                     color: theme.textTheme.bodySmall?.color,
-                    fontSize: 10,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'Filter tanggal',
-            onPressed: _showFilterDialog,
-            style: IconButton.styleFrom(
-              backgroundColor:
-                  (_filterStartDate != null || _filterEndDate != null)
-                  ? const Color(0xFF9B5EFF).withValues(alpha: 0.14)
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: hasDateFilter
+                  ? const Color(0xFF9B5EFF).withValues(alpha: 0.13)
                   : isDark
-                  ? const Color(0xFF16162A)
-                  : const Color(0xFFF5F5FA),
-              foregroundColor: const Color(0xFF9B5EFF),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                  ? const Color(0xFF19182B)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: hasDateFilter
+                    ? const Color(0xFF9B5EFF).withValues(alpha: 0.34)
+                    : isDark
+                    ? const Color(0xFF29273E)
+                    : const Color(0xFFE8E6EF),
               ),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: const Color(0xFF29233B).withValues(alpha: 0.05),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
-            icon: const Icon(Icons.filter_alt_outlined),
-          ),
-          const SizedBox(width: 7),
-          IconButton(
-            tooltip: 'Muat ulang',
-            onPressed: _isLoading || _isRefreshing ? null : _refresh,
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
-              foregroundColor: const Color(0xFF9B5EFF),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            icon: _isRefreshing
-                ? const SizedBox(
-                    width: 19,
-                    height: 19,
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF9B5EFF),
-                      strokeWidth: 2,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  tooltip: 'Filter tanggal',
+                  onPressed: _showFilterDialog,
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(
+                    Icons.tune_rounded,
+                    color: Color(0xFF9B5EFF),
+                    size: 22,
+                  ),
+                ),
+                if (hasDateFilter)
+                  Positioned(
+                    top: 9,
+                    right: 9,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF9B5EFF),
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  )
-                : const Icon(Icons.refresh_rounded),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1718,53 +1762,57 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
     final theme = Theme.of(context);
 
     return Container(
-      height: 53,
-      color: isDark ? const Color(0xFF13102A) : Colors.white,
+      height: 54,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF11101F) : const Color(0xFFF8F7FC),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? const Color(0xFF25233A) : const Color(0xFFE7E5ED),
+          ),
+        ),
+      ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.symmetric(
-          horizontal: horizontalPadding,
-          vertical: 8,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         itemCount: _OrderFilter.values.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 7),
+        separatorBuilder: (_, _) => const SizedBox(width: 24),
         itemBuilder: (context, index) {
           final filter = _OrderFilter.values[index];
           final selected = _selectedFilter == filter;
 
-          return ChoiceChip(
-            selected: selected,
-            onSelected: (_) {
+          return InkWell(
+            onTap: () {
               setState(() {
                 _selectedFilter = filter;
               });
             },
-            label: Text(
-              filter.label,
-              style: GoogleFonts.inter(
-                color: selected
-                    ? Colors.white
-                    : theme.textTheme.bodyMedium?.color,
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: selected
+                        ? const Color(0xFF9B5EFF)
+                        : Colors.transparent,
+                    width: 3,
+                  ),
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                filter.label,
+                style: GoogleFonts.inter(
+                  color: selected
+                      ? const Color(0xFF9B5EFF)
+                      : theme.textTheme.bodyMedium?.color,
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
               ),
             ),
-            selectedColor: const Color(0xFF9B5EFF),
-            backgroundColor: isDark
-                ? const Color(0xFF16162A)
-                : const Color(0xFFF7F7FB),
-            side: BorderSide(
-              color: selected
-                  ? const Color(0xFF9B5EFF)
-                  : isDark
-                  ? const Color(0xFF1E1E35)
-                  : const Color(0xFFE5E7EB),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(11),
-            ),
-            showCheckmark: false,
           );
         },
       ),
@@ -1864,9 +1912,9 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
         ),
         padding: EdgeInsets.fromLTRB(
           horizontalPadding,
-          10,
+          16,
           horizontalPadding,
-          28,
+          32,
         ),
         itemCount: _filteredOrders.length + (_errorMessage == null ? 0 : 1),
         itemBuilder: (context, index) {
@@ -1898,21 +1946,21 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
     final previewItems = order.items.take(2).toList();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.fromLTRB(17, 17, 17, 16),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
+          color: isDark ? const Color(0xFF29273E) : const Color(0xFFEBE9F0),
         ),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 9,
-                  offset: const Offset(0, 3),
+                  color: const Color(0xFF29233B).withValues(alpha: 0.07),
+                  blurRadius: 18,
+                  offset: const Offset(0, 7),
                 ),
               ],
       ),
@@ -1922,73 +1970,65 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.11),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(
-                  _orderStatusIcon(order),
-                  color: statusColor,
-                  size: 21,
-                ),
-              ),
-              const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 7,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       order.orderNumber,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(
                         color: theme.textTheme.titleLarge?.color,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.15,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      _formatDateTime(_orderDate(order)),
-                      style: GoogleFonts.inter(
-                        color: theme.textTheme.bodySmall?.color,
-                        fontSize: 9,
-                      ),
+                    _statusBadge(
+                      label: _orderStatusLabel(order),
+                      color: statusColor,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              _statusBadge(label: _orderStatusLabel(order), color: statusColor),
+              const SizedBox(width: 12),
+              Text(
+                _formatOrderDate(_orderDate(order)),
+                style: GoogleFonts.inter(
+                  color: theme.textTheme.bodySmall?.color,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 17),
           ...previewItems.map(
             (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 5),
+              padding: const EdgeInsets.only(bottom: 8),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
                       '${item.quantity}× ${item.productName}',
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(
                         color: theme.textTheme.bodyMedium?.color,
-                        fontSize: 10,
+                        fontSize: 12,
+                        height: 1.35,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 14),
                   Text(
                     'Rp ${_formatPrice(item.subtotal)}',
                     style: GoogleFonts.inter(
                       color: theme.textTheme.titleLarge?.color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -2000,12 +2040,16 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
               '+${order.items.length - 2} produk lainnya',
               style: GoogleFonts.inter(
                 color: const Color(0xFF9B5EFF),
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          const Divider(height: 20),
+          Divider(
+            height: 26,
+            color: isDark ? const Color(0xFF2B2942) : const Color(0xFFE7E5EC),
+          ),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: Column(
@@ -2015,15 +2059,18 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
                       'Total',
                       style: GoogleFonts.inter(
                         color: theme.textTheme.bodySmall?.color,
-                        fontSize: 9,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       'Rp ${_formatPrice(order.grandTotal)}',
                       style: GoogleFonts.poppins(
                         color: const Color(0xFF9B5EFF),
-                        fontSize: 15,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
+                        height: 1.1,
                       ),
                     ),
                   ],
@@ -2031,66 +2078,74 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
               ),
               if (processing)
                 const SizedBox(
-                  width: 23,
-                  height: 23,
+                  width: 26,
+                  height: 26,
                   child: CircularProgressIndicator(
                     color: Color(0xFF9B5EFF),
                     strokeWidth: 2,
                   ),
-                )
-              else
-                _buildOrderActions(order: order, isDark: isDark),
+                ),
             ],
           ),
-          if (!order.isPickup) ...[
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1E1E35)
-                    : const Color(0xFFF7F7FB),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.location_on_outlined,
-                    color: theme.textTheme.bodySmall?.color,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      _addressPreview(order),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: theme.textTheme.bodySmall?.color,
-                        fontSize: 9,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          if (!processing) ...[
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _buildOrderActions(order: order),
             ),
           ],
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1B1A2E) : const Color(0xFFF7F6FA),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF29273E)
+                    : const Color(0xFFEFEDF3),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  order.isPickup
+                      ? Icons.storefront_outlined
+                      : Icons.location_on_outlined,
+                  color: const Color(0xFF8B8498),
+                  size: 18,
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    order.isPickup
+                        ? 'Ambil langsung di toko Kanzza'
+                        : _addressPreview(order),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: theme.textTheme.bodySmall?.color,
+                      fontSize: 10,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildOrderActions({
-    required CustomerOrderModel order,
-    required bool isDark,
-  }) {
+  Widget _buildOrderActions({required CustomerOrderModel order}) {
     final actions = <Widget>[
       _smallActionButton(
         label: 'Detail',
         icon: Icons.visibility_outlined,
         color: const Color(0xFF9B5EFF),
-        isDark: isDark,
         onTap: () {
           _showOrderDetail(order);
         },
@@ -2103,7 +2158,6 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
           label: 'Bayar',
           icon: Icons.payment_rounded,
           color: Colors.orange.shade500,
-          isDark: isDark,
           onTap: () {
             _continuePayment(order);
           },
@@ -2117,7 +2171,6 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
           label: 'Batal',
           icon: Icons.close_rounded,
           color: Colors.red.shade400,
-          isDark: isDark,
           onTap: () {
             _cancelOrder(order);
           },
@@ -2131,7 +2184,6 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
           label: 'Pesan Lagi',
           icon: Icons.replay_circle_filled_outlined,
           color: Colors.green.shade500,
-          isDark: isDark,
           onTap: () {
             _reorder(order);
           },
@@ -2139,13 +2191,11 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       );
     }
 
-    return Flexible(
-      child: Wrap(
-        alignment: WrapAlignment.end,
-        spacing: 6,
-        runSpacing: 6,
-        children: actions,
-      ),
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: 8,
+      runSpacing: 8,
+      children: actions,
     );
   }
 
@@ -2153,29 +2203,29 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
     required String label,
     required IconData icon,
     required Color color,
-    required bool isDark,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(11),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        constraints: const BoxConstraints(minHeight: 38),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.09),
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: color.withValues(alpha: 0.22)),
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(color: color.withValues(alpha: 0.28)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 14),
-            const SizedBox(width: 4),
+            Icon(icon, color: color, size: 16),
+            const SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.inter(
                 color: color,
-                fontSize: 9,
+                fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -2187,45 +2237,21 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
 
   Widget _statusBadge({required String label, required Color color}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: Text(
         label,
         style: GoogleFonts.inter(
           color: color,
-          fontSize: 8,
+          fontSize: 9,
           fontWeight: FontWeight.w700,
         ),
       ),
     );
-  }
-
-  IconData _orderStatusIcon(CustomerOrderModel order) {
-    if (order.canCustomerPayOnline) {
-      return Icons.schedule_rounded;
-    }
-
-    switch (order.orderStatus) {
-      case 'confirmed':
-      case 'processing':
-        return Icons.inventory_2_outlined;
-      case 'ready':
-        return Icons.task_alt_rounded;
-      case 'assigned':
-      case 'picked_up':
-      case 'on_delivery':
-        return Icons.local_shipping_outlined;
-      case 'delivered':
-        return Icons.check_circle_outline_rounded;
-      case 'cancelled':
-        return Icons.cancel_outlined;
-      default:
-        return Icons.receipt_long_outlined;
-    }
   }
 
   String _addressPreview(CustomerOrderModel order) {
