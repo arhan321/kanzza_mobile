@@ -20,8 +20,7 @@ class Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark =
-        this.isDark ?? Provider.of<ThemeProvider>(context).isDarkMode;
+    final isDark = this.isDark ?? Provider.of<ThemeProvider>(context).isDarkMode;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,9 +69,7 @@ class Header extends StatelessWidget {
                 color: isDark ? const Color(0xFF16162A) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark
-                      ? const Color(0xFF1E1E35)
-                      : const Color(0xFFE5E7EB),
+                  color: isDark ? const Color(0xFF1E1E35) : const Color(0xFFE5E7EB),
                   width: 1,
                 ),
               ),
@@ -113,7 +110,9 @@ class Header extends StatelessWidget {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          notificationCount > 99 ? '99+' : '$notificationCount',
+                          notificationCount > 99
+                              ? '99+'
+                              : '$notificationCount',
                           style: GoogleFonts.inter(
                             color: Colors.white,
                             fontSize: 8,

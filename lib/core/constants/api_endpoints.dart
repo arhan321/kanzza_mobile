@@ -18,12 +18,18 @@ class ApiEndpoints {
   static const String addresses = '/addresses';
   static const String orders = '/orders';
   static const String notifications = '/notifications';
-  static const String notificationUnreadCount = '/notifications/unread-count';
+  static const String notificationUnreadCount =
+      '/notifications/unread-count';
   static const String markAllNotificationsAsRead = '/notifications/read-all';
 
   // Cashier
   static const String cashierTransactions = '/cashier/transactions';
   static const String cashierProducts = '/cashier/products';
+  static const String cashierNotifications = '/cashier/notifications';
+  static const String cashierNotificationUnreadCount =
+      '/cashier/notifications/unread-count';
+  static const String markAllCashierNotificationsAsRead =
+      '/cashier/notifications/read-all';
 
   // Driver
   static const String driverDeliveries = '/driver/deliveries';
@@ -33,6 +39,8 @@ class ApiEndpoints {
   static const String ownerUsers = '/owner/users';
   static const String ownerCategories = '/owner/categories';
   static const String ownerProducts = '/owner/products';
+  static const String ownerSalesReports = '/owner/reports/sales';
+  static const String ownerSalesReportExport = '/owner/reports/sales/export';
 
   static String categoryDetail(int categoryId) {
     return '/categories/$categoryId';
@@ -82,8 +90,16 @@ class ApiEndpoints {
     return '/cashier/products/$productId';
   }
 
+  static String markCashierNotificationAsRead(int notificationId) {
+    return '/cashier/notifications/$notificationId/read';
+  }
+
   static String driverDeliveryDetail(int deliveryId) {
     return '/driver/deliveries/$deliveryId';
+  }
+
+  static String claimDriverDelivery(int deliveryId) {
+    return '/driver/deliveries/$deliveryId/claim';
   }
 
   static String updateDriverDeliveryStatus(int deliveryId) {

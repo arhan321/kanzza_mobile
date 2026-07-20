@@ -22,6 +22,10 @@ class DriverDeliveryRemoteDataSource {
     return _apiClient.get(ApiEndpoints.driverDeliveryDetail(deliveryId));
   }
 
+  Future<ApiResponse> claimDelivery(int deliveryId) {
+    return _apiClient.post(ApiEndpoints.claimDriverDelivery(deliveryId));
+  }
+
   Future<ApiResponse> updateDeliveryStatus({
     required int deliveryId,
     required String status,

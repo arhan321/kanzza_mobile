@@ -32,9 +32,13 @@ class DriverDeliveryRepository {
           .toList();
 
       deliveries.sort(
-        (first, second) => second.sortDate.compareTo(
-          first.sortDate,
-        ),
+        (first, second) {
+          if (first.isAvailable != second.isAvailable) {
+            return first.isAvailable ? -1 : 1;
+          }
+
+          return second.sortDate.compareTo(first.sortDate);
+        },
       );
 
       return deliveries;
@@ -69,6 +73,25 @@ class DriverDeliveryRepository {
       throw ApiException(
         message:
             'Detail pengiriman tidak dapat dibaca: $error',
+      );
+    }
+  }
+
+  Future<DriverDeliveryModel> claimDelivery(int deliveryId) async {
+    final response = await _remoteDataSource.claimDelivery(deliveryId);
+    final data = response.dataAsMap;
+
+    if (data == null) {
+      throw const ApiException(
+        message: 'Pengiriman berhasil diambil, tetapi respons server tidak lengkap.',
+      );
+    }
+
+    try {
+      return DriverDeliveryModel.fromJson(data);
+    } catch (error) {
+      throw ApiException(
+        message: 'Data pengiriman yang diambil tidak dapat dibaca: $error',
       );
     }
   }

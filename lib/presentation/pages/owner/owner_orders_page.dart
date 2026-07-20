@@ -374,7 +374,7 @@ class _OwnerOrdersPageState extends State<OwnerOrdersPage> {
             if (isReadyDelivery && !widget.canAssignDrivers) ...[
               const SizedBox(height: 8),
               Text(
-                'Pesanan siap. Penugasan driver dilakukan oleh owner.',
+                'Pesanan siap dan sudah tersedia di dashboard driver.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],

@@ -7,6 +7,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../data/repositories/user_repository.dart';
+import '../../providers/cashier_notification_provider.dart';
 import '../../providers/customer_notification_provider.dart';
 import 'auth_destination.dart';
 import 'register_page.dart';
@@ -75,6 +76,7 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       context.read<CustomerNotificationProvider>().clear();
+      context.read<CashierNotificationProvider>().clear();
 
       final destination = destinationForUser(session.user);
 
@@ -92,7 +94,9 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => destination),
+        MaterialPageRoute(
+          builder: (_) => destination,
+        ),
         (route) => false,
       );
     } on ApiException catch (error) {
@@ -106,7 +110,9 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      _showErrorSnackBar('Terjadi kesalahan saat login. Silakan coba kembali.');
+      _showErrorSnackBar(
+        'Terjadi kesalahan saat login. Silakan coba kembali.',
+      );
       debugPrint('LOGIN ERROR: $error');
     } finally {
       if (mounted) {
@@ -216,7 +222,9 @@ class _LoginPageState extends State<LoginPage> {
                   bottom: MediaQuery.of(context).padding.bottom + 20,
                 ),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
+                  constraints: const BoxConstraints(
+                    maxWidth: 560,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,

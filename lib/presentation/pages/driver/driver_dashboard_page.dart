@@ -1,5 +1,7 @@
 // lib/presentation/pages/driver/driver_dashboard_page.dart
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -34,12 +36,15 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
 
   bool _isLoading = true;
   bool _isRefreshing = false;
+  bool _isAutoRefreshing = false;
   bool _isLoggingOut = false;
   int? _processingDeliveryId;
   String? _errorMessage;
+  Timer? _autoRefreshTimer;
 
   static const List<_DriverFilter> _filters = [
     _DriverFilter(value: 'all', label: 'Semua'),
+    _DriverFilter(value: 'unassigned', label: 'Siap Diambil'),
     _DriverFilter(value: 'assigned', label: 'Ditugaskan'),
     _DriverFilter(value: 'picked_up', label: 'Diambil'),
     _DriverFilter(value: 'on_delivery', label: 'Dikirim'),
@@ -50,6 +55,16 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
   void initState() {
     super.initState();
     _loadDashboard();
+    _autoRefreshTimer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => _refreshDeliveriesSilently(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadDashboard({bool isRefresh = false}) async {
@@ -142,6 +157,42 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
     await _loadDashboard(isRefresh: true);
   }
 
+  Future<void> _refreshDeliveriesSilently() async {
+    if (!mounted ||
+        _isLoading ||
+        _isRefreshing ||
+        _isAutoRefreshing ||
+        _isLoggingOut ||
+        _processingDeliveryId != null) {
+      return;
+    }
+
+    _isAutoRefreshing = true;
+
+    try {
+      final deliveries = await _deliveryRepository.getDeliveries(perPage: 100);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _deliveries
+          ..clear()
+          ..addAll(deliveries);
+        _errorMessage = null;
+      });
+    } on ApiException catch (error) {
+      if (error.isUnauthorized) {
+        await _handleUnauthorized();
+      }
+    } catch (error) {
+      debugPrint('AUTO REFRESH DRIVER DELIVERIES ERROR: $error');
+    } finally {
+      _isAutoRefreshing = false;
+    }
+  }
+
   List<DriverDeliveryModel> get _filteredDeliveries {
     if (_selectedFilter == 'all') {
       return List<DriverDeliveryModel>.from(_deliveries);
@@ -154,6 +205,10 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
 
   int get _assignedCount {
     return _deliveries.where((delivery) => delivery.isAssigned).length;
+  }
+
+  int get _availableCount {
+    return _deliveries.where((delivery) => delivery.isAvailable).length;
   }
 
   int get _pickedUpCount {
@@ -170,22 +225,6 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
 
   int get _activeCount {
     return _deliveries.where((delivery) => delivery.isActive).length;
-  }
-
-  int get _todayAssignedCount {
-    final now = DateTime.now();
-
-    return _deliveries.where((delivery) {
-      final date = delivery.assignedAt?.toLocal();
-
-      if (date == null) {
-        return false;
-      }
-
-      return date.year == now.year &&
-          date.month == now.month &&
-          date.day == now.day;
-    }).length;
   }
 
   Future<void> _showLogoutConfirmation() async {
@@ -507,7 +546,32 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                           ],
                           const SizedBox(height: 18),
                           _buildTimeline(delivery, isDark),
-                          if (delivery.nextStatus != null) ...[
+                          if (delivery.isAvailable) ...[
+                            const SizedBox(height: 22),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _processingDeliveryId == delivery.id
+                                    ? null
+                                    : () async {
+                                        Navigator.pop(bottomSheetContext);
+                                        await _confirmClaimDelivery(delivery);
+                                      },
+                                icon: const Icon(Icons.delivery_dining_rounded),
+                                label: const Text('Ambil Pengiriman'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF9B5EFF),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(13),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ] else if (delivery.nextStatus != null) ...[
                             const SizedBox(height: 22),
                             SizedBox(
                               width: double.infinity,
@@ -732,9 +796,11 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         ),
         const SizedBox(height: 10),
         _timelineItem(
-          title: 'Driver ditugaskan',
-          date: delivery.assignedAt,
-          completed: delivery.assignedAt != null,
+          title: delivery.isAvailable
+              ? 'Siap diambil driver'
+              : 'Driver ditugaskan',
+          date: delivery.isAvailable ? delivery.createdAt : delivery.assignedAt,
+          completed: delivery.isAvailable || delivery.assignedAt != null,
           isLast: false,
           isDark: isDark,
         ),
@@ -895,6 +961,151 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmClaimDelivery(DriverDeliveryModel delivery) async {
+    if (!delivery.isAvailable || _processingDeliveryId != null) {
+      return;
+    }
+
+    final order = delivery.order;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+
+        return AlertDialog(
+          backgroundColor: theme.cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Ambil Pengiriman?',
+            style: GoogleFonts.poppins(
+              color: theme.textTheme.titleLarge?.color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${delivery.orderNumber} • ${order?.customerName ?? 'Customer'}',
+                style: GoogleFonts.inter(
+                  color: theme.textTheme.titleMedium?.color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                order?.fullAddress ?? 'Alamat pengiriman tidak tersedia.',
+                style: GoogleFonts.inter(
+                  color: theme.textTheme.bodyMedium?.color,
+                  fontSize: 12,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 13),
+              Container(
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF9B5EFF).withValues(alpha: 0.09),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Setelah dikonfirmasi, pengiriman ini menjadi tanggung jawab Anda dan tidak dapat diambil driver lain.',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF7C3AED),
+                    fontSize: 11,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              icon: const Icon(Icons.delivery_dining_rounded),
+              label: const Text('Ya, Ambil'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9B5EFF),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _processingDeliveryId = delivery.id;
+    });
+
+    try {
+      final claimed = await _deliveryRepository.claimDelivery(delivery.id);
+
+      if (!mounted) {
+        return;
+      }
+
+      final index = _deliveries.indexWhere((item) => item.id == claimed.id);
+
+      setState(() {
+        if (index >= 0) {
+          _deliveries[index] = claimed;
+        } else {
+          _deliveries.insert(0, claimed);
+        }
+      });
+
+      HapticFeedback.mediumImpact();
+      _showSnackBar(
+        '${claimed.orderNumber} berhasil Anda ambil. Silakan ambil pesanan dari kasir.',
+        Colors.green.shade500,
+      );
+    } on ApiException catch (error) {
+      if (error.isUnauthorized) {
+        await _handleUnauthorized();
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      _showSnackBar(error.firstValidationError, Colors.red.shade400);
+      await _loadDashboard(isRefresh: true);
+    } catch (error) {
+      debugPrint('CLAIM DRIVER DELIVERY ERROR: $error');
+
+      if (!mounted) {
+        return;
+      }
+
+      _showSnackBar(
+        'Pengiriman gagal diambil. Silakan muat ulang dan coba kembali.',
+        Colors.red.shade400,
+      );
+      await _loadDashboard(isRefresh: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _processingDeliveryId = null;
+        });
+      }
+    }
   }
 
   Future<void> _confirmStatusUpdate(DriverDeliveryModel delivery) async {
@@ -1223,7 +1434,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
       case 'delivered':
         return 'Selesai';
       case 'unassigned':
-        return 'Belum Ditugaskan';
+        return 'Siap Diambil';
       default:
         return status;
     }
@@ -1239,6 +1450,8 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         return const Color(0xFF3F51B5);
       case 'delivered':
         return const Color(0xFF4CAF50);
+      case 'unassigned':
+        return const Color(0xFF9B5EFF);
       default:
         return const Color(0xFF6B7280);
     }
@@ -1254,6 +1467,8 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         return Icons.local_shipping_outlined;
       case 'delivered':
         return Icons.check_circle_outline_rounded;
+      case 'unassigned':
+        return Icons.delivery_dining_rounded;
       default:
         return Icons.delivery_dining_outlined;
     }
@@ -1503,6 +1718,10 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         ),
         children: [
           _buildWelcomeCard(isTablet),
+          if (_availableCount > 0) ...[
+            const SizedBox(height: 13),
+            _buildAvailableBanner(isDark),
+          ],
           const SizedBox(height: 16),
           _buildStatsGrid(isDark: isDark, isTablet: isTablet),
           const SizedBox(height: 18),
@@ -1576,7 +1795,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                 const SizedBox(height: 4),
                 Text(
                   '$_activeCount pengiriman aktif • '
-                  '$_todayAssignedCount tugas ditugaskan hari ini',
+                  '$_availableCount pesanan siap diambil',
                   style: GoogleFonts.inter(
                     color: Colors.white.withValues(alpha: 0.88),
                     fontSize: isTablet ? 14 : 11,
@@ -1599,6 +1818,77 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAvailableBanner(bool isDark) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+        onTap: () {
+          setState(() {
+            _selectedFilter = 'unassigned';
+          });
+        },
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF24193C)
+                : const Color(0xFFF3ECFF),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: const Color(0xFF9B5EFF).withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF9B5EFF).withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.delivery_dining_rounded,
+                  color: Color(0xFF9B5EFF),
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$_availableCount pesanan siap dikirim',
+                      style: GoogleFonts.poppins(
+                        color: Theme.of(context).textTheme.titleLarge?.color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Ketuk untuk melihat dan mengambil pengiriman.',
+                      style: GoogleFonts.inter(
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Color(0xFF9B5EFF),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1925,7 +2215,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Ditugaskan '
+                      '${delivery.isAvailable ? 'Tersedia' : 'Ditugaskan'} '
                       '${_formatDateTime(delivery.sortDate)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1936,19 +2226,55 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'Lihat Detail',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF9B5EFF),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
+                  if (delivery.isAvailable)
+                    SizedBox(
+                      height: 32,
+                      child: ElevatedButton.icon(
+                        onPressed: processing
+                            ? null
+                            : () => _confirmClaimDelivery(delivery),
+                        icon: processing
+                            ? const SizedBox.square(
+                                dimension: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.delivery_dining_rounded,
+                                size: 15,
+                              ),
+                        label: const Text('Ambil'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF9B5EFF),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 11),
+                          textStyle: GoogleFonts.inter(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                        ),
+                      ),
+                    )
+                  else ...[
+                    Text(
+                      'Lihat Detail',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF9B5EFF),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Color(0xFF9B5EFF),
-                    size: 17,
-                  ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFF9B5EFF),
+                      size: 17,
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -2135,7 +2461,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
           const SizedBox(height: 6),
           Text(
             _deliveries.isEmpty
-                ? 'Tugas yang diberikan cashier atau owner akan muncul di sini.'
+                ? 'Pesanan yang sudah ditandai Siap akan langsung muncul di sini.'
                 : 'Coba pilih filter status yang lain.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(

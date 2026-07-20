@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'core/theme/theme_provider.dart';
 import 'presentation/pages/auth/splash_page.dart';
+import 'presentation/providers/cashier_notification_provider.dart';
 import 'presentation/providers/customer_cart_provider.dart';
 import 'presentation/providers/customer_notification_provider.dart';
 import 'routes.dart';
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => CustomerCartProvider()..initialize(),
         ),
+        ChangeNotifierProvider(create: (_) => CashierNotificationProvider()),
         ChangeNotifierProvider(create: (_) => CustomerNotificationProvider()),
       ],
       child: Consumer<ThemeProvider>(

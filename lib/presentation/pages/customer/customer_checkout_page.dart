@@ -759,7 +759,7 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
         return;
       }
 
-      await Navigator.push<bool>(
+      final shouldCheckPayment = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
           builder: (_) => MidtransPaymentPage(
@@ -770,6 +770,15 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
       );
 
       if (!mounted) {
+        return;
+      }
+
+      if (shouldCheckPayment != true) {
+        await _showOrderCreatedWithoutPayment(
+          createdOrder,
+          'Pembayaran belum diselesaikan. Anda dapat melanjutkan pembayaran '
+              'dari halaman pesanan.',
+        );
         return;
       }
 

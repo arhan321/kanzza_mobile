@@ -1,5 +1,7 @@
 // lib/presentation/pages/cashier/cashier_dashboard_page.dart
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +16,7 @@ import '../../../data/models/customer_order.dart';
 import '../../../data/repositories/customer_order_repository.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../routes.dart';
+import '../../providers/cashier_notification_provider.dart';
 
 class CashierDashboardPage extends StatefulWidget {
   const CashierDashboardPage({super.key});
@@ -22,7 +25,8 @@ class CashierDashboardPage extends StatefulWidget {
   State<CashierDashboardPage> createState() => _CashierDashboardPageState();
 }
 
-class _CashierDashboardPageState extends State<CashierDashboardPage> {
+class _CashierDashboardPageState extends State<CashierDashboardPage>
+    with WidgetsBindingObserver {
   final UserRepository _userRepository = UserRepository();
   final CustomerOrderRepository _orderRepository = CustomerOrderRepository();
 
@@ -33,6 +37,8 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
   bool _isRefreshing = false;
   bool _isLoggingOut = false;
   String? _errorMessage;
+  Timer? _notificationTimer;
+  bool _isAppActive = true;
 
   final List<_CashierMenuItem> _menuItems = const [
     _CashierMenuItem(
@@ -68,7 +74,47 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadDashboard();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshNotificationCount();
+    });
+    _notificationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_isAppActive && mounted) {
+        _refreshNotificationCount();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isAppActive = state == AppLifecycleState.resumed;
+    if (_isAppActive) {
+      _refreshNotificationCount();
+    }
+  }
+
+  Future<void> _refreshNotificationCount() async {
+    if (!mounted) {
+      return;
+    }
+    await context
+        .read<CashierNotificationProvider>()
+        .refreshUnreadCount();
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.pushNamed(context, AppRoutes.cashierNotifications);
+    if (mounted) {
+      await _refreshNotificationCount();
+    }
   }
 
   Future<void> _loadDashboard({bool isRefresh = false}) async {
@@ -123,6 +169,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
           return;
         }
 
+        context.read<CashierNotificationProvider>().clear();
         _goToLogin();
         return;
       }
@@ -152,7 +199,10 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
       return;
     }
 
-    await _loadDashboard(isRefresh: true);
+    await Future.wait<void>([
+      _loadDashboard(isRefresh: true),
+      _refreshNotificationCount(),
+    ]);
   }
 
   Future<void> _showLogoutConfirmation() async {
@@ -241,6 +291,7 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
       return;
     }
 
+    context.read<CashierNotificationProvider>().clear();
     _goToLogin();
   }
 
@@ -413,6 +464,9 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
     required bool isTablet,
   }) {
     final theme = Theme.of(context);
+    final unreadCount = context
+        .watch<CashierNotificationProvider>()
+        .unreadCount;
 
     return Container(
       padding: EdgeInsets.only(
@@ -449,6 +503,57 @@ class _CashierDashboardPageState extends State<CashierDashboardPage> {
             ),
           ),
           const ThemeToggleButton(),
+          const SizedBox(width: 8),
+          _buildHeaderButton(
+            isDark: isDark,
+            icon: Icons.notifications_none_rounded,
+            iconColor: const Color(0xFF9B5EFF),
+            backgroundColor: const Color(0xFF9B5EFF).withValues(alpha: 0.12),
+            borderColor: const Color(0xFF9B5EFF).withValues(alpha: 0.20),
+            onPressed: _openNotifications,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                const Icon(
+                  Icons.notifications_none_rounded,
+                  color: Color(0xFF9B5EFF),
+                  size: 22,
+                ),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: -7,
+                    top: -8,
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 17,
+                        minHeight: 17,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF5350),
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF13102A)
+                              : Colors.white,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        unreadCount > 99 ? '99+' : '$unreadCount',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
           const SizedBox(width: 8),
           _buildHeaderButton(
             isDark: isDark,

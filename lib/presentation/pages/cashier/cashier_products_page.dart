@@ -13,8 +13,15 @@ import '../../../data/models/owner_product_input.dart';
 import '../../../data/models/product.dart';
 import '../../../data/repositories/product_repository.dart';
 
+enum ProductManagementMode { cashier, owner }
+
 class CashierProductsPage extends StatefulWidget {
-  const CashierProductsPage({super.key});
+  const CashierProductsPage({
+    super.key,
+    this.mode = ProductManagementMode.cashier,
+  });
+
+  final ProductManagementMode mode;
 
   @override
   State<CashierProductsPage> createState() => _CashierProductsPageState();
@@ -119,7 +126,10 @@ class _CashierProductsPageState extends State<CashierProductsPage> {
 
   void _onSearchChanged(String _) {
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 450), _loadProducts);
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      _loadProducts,
+    );
     setState(() {});
   }
 
@@ -142,8 +152,10 @@ class _CashierProductsPageState extends State<CashierProductsPage> {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) =>
-          _CashierProductEditorSheet(product: product, categories: _categories),
+      builder: (sheetContext) => _CashierProductEditorSheet(
+        product: product,
+        categories: _categories,
+      ),
     );
 
     if (input == null || !mounted) {
@@ -157,13 +169,24 @@ class _CashierProductsPageState extends State<CashierProductsPage> {
 
     try {
       if (product == null) {
-        await _repository.createCashierProduct(input);
+        if (widget.mode == ProductManagementMode.owner) {
+          await _repository.createOwnerProduct(input);
+        } else {
+          await _repository.createCashierProduct(input);
+        }
         _showMessage('Produk berhasil ditambahkan.');
       } else {
-        await _repository.updateCashierProduct(
-          productId: product.id,
-          input: input,
-        );
+        if (widget.mode == ProductManagementMode.owner) {
+          await _repository.updateOwnerProduct(
+            productId: product.id,
+            input: input,
+          );
+        } else {
+          await _repository.updateCashierProduct(
+            productId: product.id,
+            input: input,
+          );
+        }
         _showMessage('Produk berhasil diperbarui.');
       }
 
@@ -254,7 +277,11 @@ class _CashierProductsPageState extends State<CashierProductsPage> {
     });
 
     try {
-      await _repository.deleteCashierProduct(product.id);
+      if (widget.mode == ProductManagementMode.owner) {
+        await _repository.deleteOwnerProduct(product.id);
+      } else {
+        await _repository.deleteCashierProduct(product.id);
+      }
       _showMessage('Produk berhasil dihapus.');
       await _loadProducts(refresh: true);
     } on ApiException catch (error) {
@@ -419,7 +446,9 @@ class _CashierProductsPageState extends State<CashierProductsPage> {
   }
 
   Widget _buildSearchField(bool isDark) {
-    final fieldColor = isDark ? const Color(0xFF15152B) : Colors.white;
+    final fieldColor = isDark
+        ? const Color(0xFF15152B)
+        : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF202939);
 
     return Padding(
@@ -567,7 +596,10 @@ class _CashierProductsPageState extends State<CashierProductsPage> {
           if (isWorking)
             const SizedBox.square(
               dimension: 17,
-              child: CircularProgressIndicator(color: _primary, strokeWidth: 2),
+              child: CircularProgressIndicator(
+                color: _primary,
+                strokeWidth: 2,
+              ),
             )
           else
             InkWell(
@@ -602,7 +634,9 @@ class _CashierProductsPageState extends State<CashierProductsPage> {
 
   Widget _buildBody(bool isDark) {
     if (_isLoading && _products.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: _primary));
+      return const Center(
+        child: CircularProgressIndicator(color: _primary),
+      );
     }
 
     if (_errorMessage != null && _products.isEmpty) {
@@ -617,12 +651,13 @@ class _CashierProductsPageState extends State<CashierProductsPage> {
     }
 
     if (_products.isEmpty) {
-      final hasFilter =
-          _searchController.text.trim().isNotEmpty ||
+      final hasFilter = _searchController.text.trim().isNotEmpty ||
           _selectedCategoryId != null ||
           _statusFilter != _ProductStatusFilter.all;
       return _StateView(
-        icon: hasFilter ? Icons.search_off_rounded : Icons.inventory_2_outlined,
+        icon: hasFilter
+            ? Icons.search_off_rounded
+            : Icons.inventory_2_outlined,
         title: hasFilter ? 'Produk tidak ditemukan' : 'Belum ada produk',
         message: hasFilter
             ? 'Coba ubah kata pencarian atau filter yang dipilih.'
@@ -675,7 +710,11 @@ enum _ProductStatusFilter {
   inactive('Nonaktif', false, false),
   lowInventory('Stok menipis', null, true);
 
-  const _ProductStatusFilter(this.label, this.activeValue, this.onlyLowStock);
+  const _ProductStatusFilter(
+    this.label,
+    this.activeValue,
+    this.onlyLowStock,
+  );
 
   final String label;
   final bool? activeValue;
@@ -1402,14 +1441,22 @@ class _CashierProductEditorSheetState
               ],
             ),
           ),
-          Divider(height: 1, color: textColor.withValues(alpha: 0.08)),
+          Divider(
+            height: 1,
+            color: textColor.withValues(alpha: 0.08),
+          ),
           Expanded(
             child: Form(
               key: _formKey,
               child: SingleChildScrollView(
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.fromLTRB(20, 18, 20, 24 + keyboardHeight),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  18,
+                  20,
+                  24 + keyboardHeight,
+                ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 620),
@@ -1794,7 +1841,11 @@ class _CashierProductEditorSheetState
       maxLength: maxLength,
       textCapitalization: textCapitalization,
       validator: validator,
-      decoration: _inputDecoration(label: label, icon: icon, isDark: isDark),
+      decoration: _inputDecoration(
+        label: label,
+        icon: icon,
+        isDark: isDark,
+      ),
     );
   }
 
@@ -1919,7 +1970,10 @@ class _CashierProductEditorSheetState
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(message),
+      ),
     );
   }
 

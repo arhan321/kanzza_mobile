@@ -1,6 +1,8 @@
 import '../../core/network/api_exception.dart';
 import '../datasources/owner_remote_datasource.dart';
 import '../models/owner_dashboard.dart';
+import '../models/owner_sales_report.dart';
+import '../../core/network/api_download.dart';
 import '../models/user.dart';
 
 class OwnerRepository {
@@ -9,8 +11,8 @@ class OwnerRepository {
 
   final OwnerRemoteDataSource _remoteDataSource;
 
-  Future<OwnerDashboardModel> getDashboard() async {
-    final response = await _remoteDataSource.getDashboard();
+  Future<OwnerDashboardModel> getDashboard({String period = 'today'}) async {
+    final response = await _remoteDataSource.getDashboard(period: period);
     final data = response.dataAsMap;
 
     if (data == null) {
@@ -32,12 +34,14 @@ class OwnerRepository {
     String? search,
     String? role,
     String? status,
+    bool staffOnly = false,
     int perPage = 100,
   }) async {
     final response = await _remoteDataSource.getUsers(
       search: search,
       role: role,
       status: status,
+      staffOnly: staffOnly,
       perPage: perPage,
     );
 
@@ -56,6 +60,7 @@ class OwnerRepository {
     required String email,
     required String password,
     required String role,
+    required String status,
     String? phone,
   }) async {
     final response = await _remoteDataSource.createStaff(
@@ -63,10 +68,46 @@ class OwnerRepository {
       email: email,
       password: password,
       role: role,
+      status: status,
       phone: phone,
     );
 
     return _parseUser(response.dataAsMap, 'Data staff baru');
+  }
+
+  Future<OwnerSalesReportModel> getSalesReport({
+    required DateTime startDate,
+    required DateTime endDate,
+    String? channel,
+  }) async {
+    final response = await _remoteDataSource.getSalesReport(
+      startDate: startDate,
+      endDate: endDate,
+      channel: channel,
+    );
+    final data = response.dataAsMap;
+    if (data == null) {
+      throw const ApiException(message: 'Data laporan penjualan tidak lengkap.');
+    }
+    try {
+      return OwnerSalesReportModel.fromJson(data);
+    } catch (error) {
+      throw ApiException(message: 'Laporan penjualan tidak dapat dibaca: $error');
+    }
+  }
+
+  Future<ApiDownload> downloadSalesReport({
+    required DateTime startDate,
+    required DateTime endDate,
+    required String format,
+    String? channel,
+  }) {
+    return _remoteDataSource.downloadSalesReport(
+      startDate: startDate,
+      endDate: endDate,
+      channel: channel,
+      format: format,
+    );
   }
 
   Future<UserModel> updateUserRole({

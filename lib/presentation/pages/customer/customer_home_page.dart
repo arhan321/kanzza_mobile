@@ -63,7 +63,9 @@ class _CustomerHomePageState extends State<CustomerHomePage>
     _notificationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) {
         unawaited(
-          context.read<CustomerNotificationProvider>().refreshUnreadCount(),
+          context
+              .read<CustomerNotificationProvider>()
+              .refreshUnreadCount(),
         );
       }
     });
@@ -81,7 +83,9 @@ class _CustomerHomePageState extends State<CustomerHomePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       unawaited(
-        context.read<CustomerNotificationProvider>().refreshUnreadCount(),
+        context
+            .read<CustomerNotificationProvider>()
+            .refreshUnreadCount(),
       );
     }
   }
@@ -93,7 +97,9 @@ class _CustomerHomePageState extends State<CustomerHomePage>
       debugPrint('INITIALIZE CUSTOMER CART ERROR: $error');
     }
 
-    await context.read<CustomerNotificationProvider>().refreshUnreadCount();
+    await context
+        .read<CustomerNotificationProvider>()
+        .refreshUnreadCount();
 
     if (!mounted) {
       return;
@@ -207,18 +213,24 @@ class _CustomerHomePageState extends State<CustomerHomePage>
 
     await Future.wait<void>([
       _loadCatalog(isRefresh: true),
-      context.read<CustomerNotificationProvider>().refreshUnreadCount(),
+      context
+          .read<CustomerNotificationProvider>()
+          .refreshUnreadCount(),
     ]);
   }
 
   Future<void> _openNotifications() async {
     await Navigator.push<void>(
       context,
-      MaterialPageRoute(builder: (_) => const CustomerNotificationsPage()),
+      MaterialPageRoute(
+        builder: (_) => const CustomerNotificationsPage(),
+      ),
     );
 
     if (mounted) {
-      await context.read<CustomerNotificationProvider>().refreshUnreadCount();
+      await context
+          .read<CustomerNotificationProvider>()
+          .refreshUnreadCount();
     }
   }
 
@@ -555,7 +567,8 @@ class _CustomerHomePageState extends State<CustomerHomePage>
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final cartProvider = context.watch<CustomerCartProvider>();
-    final notificationProvider = context.watch<CustomerNotificationProvider>();
+    final notificationProvider =
+        context.watch<CustomerNotificationProvider>();
     final isDark = themeProvider.isDarkMode;
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;

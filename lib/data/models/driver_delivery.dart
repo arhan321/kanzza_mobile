@@ -350,13 +350,15 @@ class DriverDeliveryModel {
 
   bool get isAssigned => status == 'assigned';
 
+  bool get isAvailable => status == 'unassigned' && driver == null;
+
   bool get isPickedUp => status == 'picked_up';
 
   bool get isOnDelivery => status == 'on_delivery';
 
   bool get isDelivered => status == 'delivered';
 
-  bool get isActive => !isDelivered;
+  bool get isActive => !isAvailable && !isDelivered;
 
   String? get nextStatus {
     switch (status) {

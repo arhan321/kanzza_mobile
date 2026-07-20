@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../storage/auth_storage.dart';
 import 'api_exception.dart';
+import 'api_download.dart';
 import 'api_response.dart';
 
 class ApiClient {
@@ -93,6 +94,58 @@ class ApiClient {
       queryParameters: queryParameters,
       requiresAuth: requiresAuth,
     );
+  }
+
+  Future<ApiDownload> download(
+    String endpoint, {
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = true,
+  }) async {
+    final uri = _buildUri(endpoint, queryParameters: queryParameters);
+
+    try {
+      final headers = await _buildHeaders(
+        requiresAuth: requiresAuth,
+        includeContentType: false,
+      );
+      headers['Accept'] = '*/*';
+      _debugRequest('GET DOWNLOAD', uri);
+      final response = await _client
+          .get(uri, headers: headers)
+          .timeout(AppConfig.receiveTimeout);
+      _debugResponse(
+        method: 'GET DOWNLOAD',
+        uri: uri,
+        statusCode: response.statusCode,
+      );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        _parseResponse(response);
+      }
+
+      return ApiDownload(
+        bytes: response.bodyBytes,
+        fileName: _downloadFileName(response.headers['content-disposition']),
+        contentType: response.headers['content-type'] ??
+            'application/octet-stream',
+      );
+    } on TimeoutException {
+      throw const ApiException(
+        message: 'Unduhan terlalu lama. Silakan coba lagi.',
+      );
+    } on SocketException {
+      throw const ApiException(
+        message: 'Tidak dapat mengunduh laporan. Periksa koneksi internet.',
+      );
+    } on http.ClientException {
+      throw const ApiException(
+        message: 'Terjadi gangguan ketika mengunduh laporan.',
+      );
+    } on ApiException {
+      rethrow;
+    } catch (error) {
+      throw ApiException(message: 'Laporan gagal diunduh: $error');
+    }
   }
 
   Future<ApiResponse> postMultipart(
@@ -427,6 +480,17 @@ class ApiClient {
     }
 
     return value.toString();
+  }
+
+  String _downloadFileName(String? disposition) {
+    final match = RegExp(
+      r'''filename\*?=(?:UTF-8''|["'])?([^"';]+)''',
+      caseSensitive: false,
+    ).firstMatch(disposition ?? '');
+    final value = match?.group(1)?.trim();
+    return value == null || value.isEmpty
+        ? 'laporan-penjualan'
+        : Uri.decodeComponent(value);
   }
 
   void _debugRequest(String method, Uri uri) {

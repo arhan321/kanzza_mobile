@@ -677,7 +677,9 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
       }
 
       unawaited(
-        context.read<CustomerNotificationProvider>().refreshUnreadCount(),
+        context
+            .read<CustomerNotificationProvider>()
+            .refreshUnreadCount(),
       );
 
       if (showResultDialog) {
@@ -1617,7 +1619,8 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
     required bool isTablet,
   }) {
     final theme = Theme.of(context);
-    final hasDateFilter = _filterStartDate != null || _filterEndDate != null;
+    final hasDateFilter =
+        _filterStartDate != null || _filterEndDate != null;
     final totalText = _selectedFilter == _OrderFilter.all && !hasDateFilter
         ? '${_orders.length} pesanan'
         : '${_filteredOrders.length} pesanan ditemukan';
@@ -1767,7 +1770,9 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
         color: isDark ? const Color(0xFF11101F) : const Color(0xFFF8F7FC),
         border: Border(
           bottom: BorderSide(
-            color: isDark ? const Color(0xFF25233A) : const Color(0xFFE7E5ED),
+            color: isDark
+                ? const Color(0xFF25233A)
+                : const Color(0xFFE7E5ED),
           ),
         ),
       ),
@@ -1787,7 +1792,9 @@ class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
                 _selectedFilter = filter;
               });
             },
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(10),
+            ),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 2),
